@@ -42,16 +42,16 @@ export function ShoppingListCard({
     <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden">
       {/* Заголовок списка */}
       <div
-        className="p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
+        className="p-4 md:p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors active:bg-zinc-100 dark:active:bg-zinc-700"
         onClick={() => onToggle(list.id)}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+            <div className="w-12 h-12 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg md:text-xl font-bold flex-shrink-0">
               {purchasedCount}/{list.items.length}
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate">
                 {list.name}
               </h2>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -59,13 +59,15 @@ export function ShoppingListCard({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onDelete(list.id)
+                if (confirm(`Удалить список "${list.name}"?`)) {
+                  onDelete(list.id)
+                }
               }}
-              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              className="p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -89,7 +91,7 @@ export function ShoppingListCard({
       {isExpanded && (
         <div className="border-t border-zinc-200 dark:border-zinc-700 p-6">
           {/* Форма добавления товара */}
-          <div className="flex gap-3 mb-4">
+          <div className="flex gap-2 md:gap-3 mb-4">
             <input
               type="text"
               value={newItemName}
@@ -101,11 +103,11 @@ export function ShoppingListCard({
                 }
               }}
               placeholder="Добавить товар..."
-              className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+              className="flex-1 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
             />
             <button
               onClick={() => onAddItem(list.id, newItemName)}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              className="px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base"
             >
               Добавить
             </button>
@@ -121,7 +123,7 @@ export function ShoppingListCard({
               {list.items.map((item) => (
                 <div
                   key={item.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 p-3 md:p-4 rounded-lg transition-colors ${
                     item.purchased
                       ? 'bg-green-50 dark:bg-green-900/20'
                       : 'bg-zinc-50 dark:bg-zinc-700/50'
@@ -129,7 +131,7 @@ export function ShoppingListCard({
                 >
                   <button
                     onClick={() => onToggleItem(list.id, item.id)}
-                    className={`flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                    className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors active:scale-95 ${
                       item.purchased
                         ? 'bg-green-500 border-green-500 text-white'
                         : 'border-zinc-300 dark:border-zinc-600 hover:border-green-500'
@@ -141,9 +143,9 @@ export function ShoppingListCard({
                       </svg>
                     )}
                   </button>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <span
-                      className={`${
+                      className={`text-base md:text-sm block truncate ${
                         item.purchased
                           ? 'line-through text-zinc-500 dark:text-zinc-400'
                           : 'text-zinc-900 dark:text-zinc-50'
@@ -159,9 +161,9 @@ export function ShoppingListCard({
                   </div>
                   <button
                     onClick={() => onDeleteItem(list.id, item.id)}
-                    className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    className="p-3 md:p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>

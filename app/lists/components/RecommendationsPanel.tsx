@@ -29,22 +29,22 @@ export function RecommendationsPanel({
   }
 
   return (
-    <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
-      <h3 className="font-semibold text-purple-900 dark:text-purple-50 mb-3">
+    <div className="mb-4 md:mb-6 p-3 md:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
+      <h3 className="font-semibold text-purple-900 dark:text-purple-50 mb-3 text-base md:text-base">
         Быстро добавить из популярных товаров:
       </h3>
 
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         {recommendations.map((category) => (
           <div key={category.id}>
             <button
               onClick={() => onCategorySelect(
                 selectedCategory === category.id ? null : category.id
               )}
-              className="w-full flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+              className="w-full flex items-center gap-2 md:gap-3 p-3 md:p-3 bg-white dark:bg-zinc-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors active:scale-[0.98] min-h-[48px]"
             >
-              <span className="text-2xl">{category.icon}</span>
-              <span className="font-medium text-zinc-900 dark:text-zinc-50 flex-1 text-left">
+              <span className="text-xl md:text-2xl">{category.icon}</span>
+              <span className="font-medium text-zinc-900 dark:text-zinc-50 flex-1 text-left text-sm md:text-base">
                 {category.name}
               </span>
               <svg
@@ -60,16 +60,17 @@ export function RecommendationsPanel({
             </button>
 
             {selectedCategory === category.id && (
-              <div className="mt-2">
+              <div className="mt-2 md:mt-2">
                 {/* Кнопка добавить всю категорию */}
-                <div className="mb-3 flex gap-2">
+                <div className="mb-2 md:mb-3 flex gap-2">
                   <button
                     onClick={() => onAddCategory(category.items)}
                     disabled={!hasOpenList}
-                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-3 md:py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-sm md:text-sm"
                   >
-                    <span>📥</span>
-                    Добавить всю категорию
+                    <span className="text-lg md:text-base">📥</span>
+                    <span className="hidden sm:inline">Добавить всю категорию</span>
+                    <span className="sm:hidden">Добавить все</span>
                   </button>
                 </div>
 
@@ -83,7 +84,7 @@ export function RecommendationsPanel({
                         key={item}
                         onClick={() => onAddItem(item)}
                         disabled={isInList || !hasOpenList}
-                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                        className={`px-3 py-3 md:py-2 rounded-lg text-sm md:text-sm transition-colors active:scale-95 min-h-[48px] ${
                           isInList
                             ? 'bg-green-500 text-white cursor-default'
                             : !hasOpenList

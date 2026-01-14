@@ -42,6 +42,8 @@ export default function ListsPage() {
   const [newItemNames, setNewItemNames] = useState<Record<string, string>>({})
   const [showRecommendations, setShowRecommendations] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Effects
   useEffect(() => {
@@ -56,6 +58,58 @@ export default function ListsPage() {
       fetchRecommendations()
     }
   }, [isAuthenticated])
+
+  // Scroll to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Pull-to-refresh
+  useEffect(() => {
+    let startY = 0
+    let isPulling = false
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (window.scrollY === 0) {
+        startY = e.touches[0].clientY
+        isPulling = true
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isPulling || window.scrollY > 0) return
+
+      const currentY = e.touches[0].clientY
+      const diff = currentY - startY
+
+      if (diff > 150 && !isRefreshing) {
+        setIsRefreshing(true)
+        fetchShoppingLists().finally(() => {
+          setIsRefreshing(false)
+        })
+        isPulling = false
+      }
+    }
+
+    const handleTouchEnd = () => {
+      isPulling = false
+    }
+
+    window.addEventListener('touchstart', handleTouchStart)
+    window.addEventListener('touchmove', handleTouchMove)
+    window.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [isRefreshing])
 
   // API calls
   const fetchShoppingLists = async () => {
@@ -351,27 +405,47 @@ export default function ListsPage() {
   // Loading state
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 px-4">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-zinc-300 border-t-blue-600"></div>
-          <p className="mt-4 text-zinc-600 dark:text-zinc-400">Загрузка...</p>
+          <p className="mt-4 text-zinc-600 dark:text-zinc-400 text-base">Загрузка...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 py-8 px-4">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 py-4 md:py-8 px-3 md:px-4 relative">
+      {/* Индикатор обновления */}
+      {isRefreshing && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium">
+          Обновление...
+        </div>
+      )}
+
+      {/* Кнопка наверх */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all active:scale-95 min-w-[48px] min-h-[48px] flex items-center justify-center"
+          aria-label="Наверх"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
+
       <div className="max-w-4xl mx-auto">
         {/* Заголовок и форма создания */}
-        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-50">
               🛒 Списки покупок
             </h1>
             <button
               onClick={() => setShowRecommendations(!showRecommendations)}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="px-4 py-3 md:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
             >
               <span>💡</span>
               Рекомендации
@@ -396,17 +470,17 @@ export default function ListsPage() {
             />
           )}
 
-          <form onSubmit={createList} className="flex gap-3">
+          <form onSubmit={createList} className="flex gap-2 md:gap-3">
             <input
               type="text"
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="Название нового списка..."
-              className="flex-1 px-4 py-3 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+              className="flex-1 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              className="px-5 md:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base"
             >
               Создать
             </button>
@@ -416,12 +490,12 @@ export default function ListsPage() {
         {/* Списки */}
         <div className="space-y-4">
           {shoppingLists.length === 0 ? (
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-12 text-center">
-              <div className="text-6xl mb-4">📝</div>
-              <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8 md:p-12 text-center">
+              <div className="text-5xl md:text-6xl mb-4">📝</div>
+              <h2 className="text-xl md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
                 Пока нет списков
               </h2>
-              <p className="text-zinc-600 dark:text-zinc-400">
+              <p className="text-zinc-600 dark:text-zinc-400 text-base">
                 Создайте свой первый список покупок!
               </p>
             </div>
