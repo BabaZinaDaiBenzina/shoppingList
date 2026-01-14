@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
@@ -48,19 +48,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="manifest" href="/manifest.json" />
-        <style jsx global>{`
-          html {
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-          }
-          * {
-            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-          }
-          button, a {
-            -webkit-tap-highlight-color: rgba(37, 99, 235, 0.2);
-          }
-        `}</style>
+        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
