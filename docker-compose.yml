@@ -1,0 +1,46 @@
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:16-alpine
+    container_name: shoppinglist-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shoppinglist}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-shoppinglist}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shoppinglist}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shoppinglist-network
+
+  # Next.js приложение
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shoppinglist-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-shoppinglist}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shoppinglist}
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shoppinglist-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  shoppinglist-network:
+    driver: bridge
