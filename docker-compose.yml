@@ -4,9 +4,11 @@ services:
     image: postgres:16-alpine
     container_name: shoppinglist-db
     restart: unless-stopped
+    ports:
+      - "5433:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-shoppinglist}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shoppinglist}
       POSTGRES_DB: ${POSTGRES_DB:-shoppinglist}
     volumes:
       - postgres_data:/var/lib/postgresql/data

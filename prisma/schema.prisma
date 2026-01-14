@@ -7,8 +7,6 @@ generator client {
 }
 
 datasource db {
-  // Для локальной разработки: "sqlite"
-  // Для продакшена: "postgresql"
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
@@ -22,6 +20,7 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   shoppingLists ShoppingList[]
+  recipes       Recipe[]
 }
 
 model ShoppingList {
@@ -43,4 +42,18 @@ model Item {
   list         ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+model Recipe {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  ingredients  String
+  instructions String
+  cookingTime  Int?
+  servings     Int?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

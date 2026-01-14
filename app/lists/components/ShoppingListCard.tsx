@@ -69,9 +69,7 @@ export function ShoppingListCard({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                if (confirm(`Удалить список "${list.name}"?`)) {
-                  onDelete(list.id)
-                }
+                onDelete(list.id)
               }}
               className="p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >

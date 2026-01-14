@@ -4,15 +4,21 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:full": "docker-compose up -d postgres && next dev",
+    "db:start": "docker-compose up -d postgres",
+    "db:stop": "docker-compose down",
+    "db:logs": "docker-compose logs postgres",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "@vercel/postgres": "^0.10.0",
     "bcrypt": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.1",
+    "pg": "^8.17.0",
     "prisma": "^6.19.2",
     "react": "19.2.3",
     "react-dom": "19.2.3"
@@ -24,9 +30,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "better-sqlite3": "^12.6.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
