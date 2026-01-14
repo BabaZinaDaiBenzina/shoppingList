@@ -38,6 +38,12 @@ export function ShoppingListCard({
 }: ShoppingListCardProps) {
   const purchasedCount = list.items.filter(i => i.purchased).length
 
+  // Сортируем товары: сначала не купленные, потом купленные
+  const sortedItems = [...list.items].sort((a, b) => {
+    if (a.purchased === b.purchased) return 0
+    return a.purchased ? 1 : -1
+  })
+
   return (
     <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden">
       {/* Заголовок списка */}
@@ -103,11 +109,11 @@ export function ShoppingListCard({
                 }
               }}
               placeholder="Добавить товар..."
-              className="flex-1 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
+              className="flex-1 min-w-0 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
             />
             <button
               onClick={() => onAddItem(list.id, newItemName)}
-              className="px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base"
+              className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base whitespace-nowrap flex-shrink-0"
             >
               Добавить
             </button>
@@ -120,21 +126,21 @@ export function ShoppingListCard({
             </div>
           ) : (
             <div className="space-y-2">
-              {list.items.map((item) => (
+              {sortedItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`flex items-center gap-3 p-3 md:p-4 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 p-3 md:p-4 rounded-lg transition-colors cursor-pointer ${
                     item.purchased
                       ? 'bg-green-50 dark:bg-green-900/20'
                       : 'bg-zinc-50 dark:bg-zinc-700/50'
                   }`}
+                  onClick={() => onToggleItem(list.id, item.id)}
                 >
-                  <button
-                    onClick={() => onToggleItem(list.id, item.id)}
-                    className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors active:scale-95 ${
+                  <div
+                    className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
                       item.purchased
                         ? 'bg-green-500 border-green-500 text-white'
-                        : 'border-zinc-300 dark:border-zinc-600 hover:border-green-500'
+                        : 'border-zinc-300 dark:border-zinc-600'
                     }`}
                   >
                     {item.purchased && (
@@ -142,7 +148,7 @@ export function ShoppingListCard({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
-                  </button>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <span
                       className={`text-base md:text-sm block truncate ${
@@ -160,8 +166,11 @@ export function ShoppingListCard({
                     )}
                   </div>
                   <button
-                    onClick={() => onDeleteItem(list.id, item.id)}
-                    className="p-3 md:p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteItem(list.id, item.id)
+                    }}
+                    className="p-3 md:p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
                   >
                     <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

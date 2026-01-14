@@ -111,6 +111,16 @@ export default function ListsPage() {
     }
   }, [isRefreshing])
 
+  // Auto-hide error messages after 3 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError('')
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [error])
+
   // API calls
   const fetchShoppingLists = async () => {
     try {
@@ -476,11 +486,11 @@ export default function ListsPage() {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="Название нового списка..."
-              className="flex-1 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
+              className="flex-1 min-w-0 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
             />
             <button
               type="submit"
-              className="px-5 md:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base"
+              className="px-4 md:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base whitespace-nowrap"
             >
               Создать
             </button>
