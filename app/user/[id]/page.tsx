@@ -7,8 +7,9 @@ import Link from 'next/link'
 
 export default function UserProfilePage() {
   const { user: currentUser, isAuthenticated, isLoading, logout } = useAuth()
-  const router = useParams()
-  const userId = router.id as string
+  const router = useRouter()
+  const params = useParams()
+  const userId = params.id as string
 
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState('')
@@ -21,7 +22,7 @@ export default function UserProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!isAuthenticated) {
-        router.push('/login')
+        router.push?.('/login')
         return
       }
 
