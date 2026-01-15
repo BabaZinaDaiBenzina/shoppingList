@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
+import { getAuthenticatedUser, unauthorizedResponse, canAccessList } from '@/lib/middleware'
 
 // POST /api/shopping-lists/[id]/items - Добавить товар в список
 export async function POST(
@@ -25,15 +25,10 @@ export async function POST(
       )
     }
 
-    // Проверяем, что список принадлежит пользователю
-    const shoppingList = await prisma.shoppingList.findFirst({
-      where: {
-        id: listId,
-        userId,
-      }
-    })
+    // Проверяем, что пользователь имеет доступ к списку
+    const hasAccess = await canAccessList(userId, listId)
 
-    if (!shoppingList) {
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Список не найден' },
         { status: 404 }

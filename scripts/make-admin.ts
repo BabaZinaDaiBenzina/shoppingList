@@ -9,7 +9,11 @@
  *   npx tsx scripts/make-admin.ts email@example.com --remove
  */
 
+import { config } from 'dotenv'
 import { PrismaClient } from '@prisma/client'
+
+// Загружаем переменные окружения из .env
+config()
 
 const prisma = new PrismaClient()
 
@@ -27,30 +31,32 @@ async function makeAdmin(email: string, remove: boolean = false) {
 
     // Обновляем роль
     const newRole = remove ? 'user' : 'admin'
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { email },
-      data: { role: newRole },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        name: true,
-        role: true
-      }
+      data: { role: newRole } as any,
     })
 
+    const resultUser = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (!resultUser) {
+      console.error('❌ Ошибка при получении обновленного пользователя')
+      process.exit(1)
+    }
+
     if (remove) {
-      console.log(`✅ Роль администратора снята с пользователя ${updatedUser.email}`)
+      console.log(`✅ Роль администратора снята с пользователя ${resultUser.email}`)
     } else {
-      console.log(`✅ Пользователь ${updatedUser.email} назначен администратором`)
+      console.log(`✅ Пользователь ${resultUser.email} назначен администратором`)
     }
 
     console.log('\n📋 Информация о пользователе:')
-    console.log(`   ID: ${updatedUser.id}`)
-    console.log(`   Email: ${updatedUser.email}`)
-    console.log(`   Username: ${updatedUser.username}`)
-    console.log(`   Имя: ${updatedUser.name || 'не указано'}`)
-    console.log(`   Роль: ${updatedUser.role === 'admin' ? '👑 Администратор' : '👤 Пользователь'}`)
+    console.log(`   ID: ${resultUser.id}`)
+    console.log(`   Email: ${resultUser.email}`)
+    console.log(`   Username: ${resultUser.username}`)
+    console.log(`   Имя: ${resultUser.name || 'не указано'}`)
+    console.log(`   Роль: ${(resultUser as any).role === 'admin' ? '👑 Администратор' : '👤 Пользователь'}`)
 
   } catch (error) {
     console.error('❌ Ошибка:', error)

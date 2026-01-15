@@ -11,6 +11,13 @@ interface ShoppingList {
   createdAt: string
   updatedAt: string
   items: Item[]
+  isShared?: boolean
+  isOwner?: boolean
+  user?: {
+    id: string
+    username: string
+    name: string | null
+  }
 }
 
 interface ShoppingListCardProps {
@@ -18,6 +25,7 @@ interface ShoppingListCardProps {
   isExpanded: boolean
   onToggle: (listId: string) => void
   onDelete: (listId: string) => void
+  onShare?: (listId: string) => void
   onAddItem: (listId: string, itemName: string) => void
   onToggleItem: (listId: string, itemId: string) => void
   onDeleteItem: (listId: string, itemId: string) => void
@@ -30,6 +38,7 @@ export function ShoppingListCard({
   isExpanded,
   onToggle,
   onDelete,
+  onShare,
   onAddItem,
   onToggleItem,
   onDeleteItem,
@@ -45,7 +54,7 @@ export function ShoppingListCard({
   })
 
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden">
+    <div className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden ${list.isShared ? 'ring-2 ring-purple-500' : ''}`}>
       {/* Заголовок списка */}
       <div
         className="p-4 md:p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors active:bg-zinc-100 dark:active:bg-zinc-700"
@@ -53,30 +62,58 @@ export function ShoppingListCard({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-            <div className="w-12 h-12 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg md:text-xl font-bold flex-shrink-0">
+            <div className={`w-12 h-12 md:w-12 md:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center text-white text-lg md:text-xl font-bold flex-shrink-0 ${
+              list.isShared ? 'from-purple-500 to-pink-600' : 'from-blue-500 to-purple-600'
+            }`}>
               {purchasedCount}/{list.items.length}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate">
-                {list.name}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate">
+                  {list.name}
+                </h2>
+                {list.isShared && (
+                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full flex-shrink-0">
+                    Общий
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 {list.items.length} товаров • {new Date(list.updatedAt).toLocaleDateString('ru-RU')}
+                {list.isShared && list.user && (
+                  <> • {list.user.name || list.user.username}</>
+                )}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete(list.id)
-              }}
-              className="p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            {list.isOwner && onShare && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onShare(list.id)
+                }}
+                className="p-3 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                title="Поделиться списком"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </button>
+            )}
+            {list.isOwner && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(list.id)
+                }}
+                className="p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
             <svg
               className={`w-5 h-5 text-zinc-400 transition-transform ${
                 isExpanded ? 'rotate-180' : ''
@@ -100,7 +137,7 @@ export function ShoppingListCard({
               type="text"
               value={newItemName}
               onChange={(e) => onItemNameChange(list.id, e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                   onAddItem(list.id, newItemName)

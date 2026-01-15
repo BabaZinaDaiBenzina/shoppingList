@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
 
-// GET /api/shopping-lists - Получить все списки пользователя
+// GET /api/shopping-lists - Получить все списки пользователя (включая shared)
 export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthenticatedUser(request)
@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
       return unauthorizedResponse()
     }
 
-    const shoppingLists = await prisma.shoppingList.findMany({
+    // Получаем собственные списки
+    const ownLists = await prisma.shoppingList.findMany({
       where: { userId },
       include: {
         items: {
@@ -20,6 +21,55 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { updatedAt: 'desc' }
     })
+
+    // Получаем списки, которыми поделились с пользователем
+    const sharedLists = await prisma.shoppingList.findMany({
+      where: {
+        shares: {
+          some: {
+            userId: userId
+          }
+        }
+      },
+      include: {
+        items: {
+          orderBy: { createdAt: 'asc' }
+        },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+          }
+        },
+        shares: {
+          where: {
+            userId: userId
+          },
+          select: {
+            id: true,
+            createdAt: true
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    })
+
+    // Добавляем флаг isShared для удобства на фронтенде
+    const ownListsWithFlag = ownLists.map(list => ({
+      ...list,
+      isShared: false,
+      isOwner: true,
+      sharedWith: [] // Можно добавить информацию о том, с кем поделились
+    }))
+
+    const sharedListsWithFlag = sharedLists.map(list => ({
+      ...list,
+      isShared: true,
+      isOwner: false,
+    }))
+
+    const shoppingLists = [...ownListsWithFlag, ...sharedListsWithFlag]
 
     return NextResponse.json({ shoppingLists })
 

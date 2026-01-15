@@ -5,7 +5,7 @@ import { getAuthenticatedAdmin, unauthorizedResponse, forbiddenResponse } from '
 // DELETE /api/admin/users/[id] - Удалить пользователя
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const adminId = await getAuthenticatedAdmin(request)
@@ -14,7 +14,7 @@ export async function DELETE(
       return unauthorizedResponse()
     }
 
-    const userId = params.id
+    const { id: userId } = await params
 
     // Проверяем, существует ли пользователь
     const user = await prisma.user.findUnique({

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { ShoppingListCard } from './components/ShoppingListCard'
 import { RecommendationsPanel } from './components/RecommendationsPanel'
+import { ShareModal } from './components/ShareModal'
 
 interface Item {
   id: string
@@ -19,6 +20,13 @@ interface ShoppingList {
   createdAt: string
   updatedAt: string
   items: Item[]
+  isShared?: boolean
+  isOwner?: boolean
+  user?: {
+    id: string
+    username: string
+    name: string | null
+  }
 }
 
 interface GroceryCategory {
@@ -44,6 +52,7 @@ export default function ListsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [shareModalListId, setShareModalListId] = useState<string | null>(null)
 
   // Effects
   useEffect(() => {
@@ -517,6 +526,7 @@ export default function ListsPage() {
                 isExpanded={expandedListId === list.id}
                 onToggle={(id) => setExpandedListId(expandedListId === id ? null : id)}
                 onDelete={deleteList}
+                onShare={list.isOwner ? (id) => setShareModalListId(id) : undefined}
                 onAddItem={addItem}
                 onToggleItem={toggleItem}
                 onDeleteItem={deleteItem}
@@ -528,6 +538,16 @@ export default function ListsPage() {
             ))
           )}
         </div>
+
+        {/* Модальное окно обмена списком */}
+        {shareModalListId && (
+          <ShareModal
+            listId={shareModalListId}
+            listName={shoppingLists.find(l => l.id === shareModalListId)?.name || ''}
+            isOpen={!!shareModalListId}
+            onClose={() => setShareModalListId(null)}
+          />
+        )}
       </div>
     </div>
   )

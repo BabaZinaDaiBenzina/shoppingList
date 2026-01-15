@@ -5,7 +5,7 @@ import { getAuthenticatedAdmin, unauthorizedResponse } from '@/lib/middleware'
 // DELETE /api/admin/shopping-lists/[id] - Удалить любой список покупок
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const adminId = await getAuthenticatedAdmin(request)
@@ -14,7 +14,7 @@ export async function DELETE(
       return unauthorizedResponse()
     }
 
-    const listId = params.id
+    const { id: listId } = await params
 
     // Проверяем, существует ли список
     const list = await prisma.shoppingList.findUnique({

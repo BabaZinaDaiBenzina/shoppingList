@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
+import { getAuthenticatedUser, unauthorizedResponse, canAccessList } from '@/lib/middleware'
 
 // PUT /api/items/[id] - Обновить товар
 export async function PUT(
@@ -18,15 +18,22 @@ export async function PUT(
     const body = await request.json()
     const { name, quantity } = body
 
-    // Находим товар и проверяем права доступа через список
+    // Находим товар
     const item = await prisma.item.findUnique({
       where: { id },
-      include: {
-        list: true
-      }
     })
 
-    if (!item || item.list.userId !== userId) {
+    if (!item) {
+      return NextResponse.json(
+        { error: 'Товар не найден' },
+        { status: 404 }
+      )
+    }
+
+    // Проверяем права доступа к списку
+    const hasAccess = await canAccessList(userId, item.listId)
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Товар не найден' },
         { status: 404 }
@@ -66,15 +73,22 @@ export async function DELETE(
 
     const { id } = await params
 
-    // Находим товар и проверяем права доступа через список
+    // Находим товар
     const item = await prisma.item.findUnique({
       where: { id },
-      include: {
-        list: true
-      }
     })
 
-    if (!item || item.list.userId !== userId) {
+    if (!item) {
+      return NextResponse.json(
+        { error: 'Товар не найден' },
+        { status: 404 }
+      )
+    }
+
+    // Проверяем права доступа к списку
+    const hasAccess = await canAccessList(userId, item.listId)
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Товар не найден' },
         { status: 404 }

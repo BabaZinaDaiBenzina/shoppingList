@@ -68,3 +68,30 @@ export function forbiddenResponse() {
     { status: 403 }
   )
 }
+
+// Проверка прав доступа к списку (владелец или с кем поделились)
+export async function canAccessList(userId: string, listId: string): Promise<boolean> {
+  const list = await prisma.shoppingList.findFirst({
+    where: {
+      id: listId,
+      OR: [
+        { userId: userId }, // Владелец
+        { shares: { some: { userId: userId } } }, // С кем поделились
+      ],
+    },
+  })
+
+  return !!list
+}
+
+// Проверка прав владельца списка
+export async function isListOwner(userId: string, listId: string): Promise<boolean> {
+  const list = await prisma.shoppingList.findFirst({
+    where: {
+      id: listId,
+      userId: userId,
+    },
+  })
+
+  return !!list
+}
