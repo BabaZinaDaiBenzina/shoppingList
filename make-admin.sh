@@ -21,5 +21,8 @@ if [ "$2" == "--remove" ] || [ "$2" == "-r" ]; then
   REMOVE_FLAG="--remove"
 fi
 
+echo "🔧 Гарантируем генерацию Prisma Client..."
+docker compose exec app npx prisma generate >/dev/null 2>&1
+
 echo "🔑 Назначение администратора для: $EMAIL"
 docker compose exec app node scripts/make-admin.js "$EMAIL" $REMOVE_FLAG

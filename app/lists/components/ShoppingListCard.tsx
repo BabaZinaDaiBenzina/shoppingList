@@ -1,3 +1,7 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+
 interface Item {
   id: string
   name: string
@@ -29,6 +33,7 @@ interface ShoppingListCardProps {
   onAddItem: (listId: string, itemName: string) => void
   onToggleItem: (listId: string, itemId: string) => void
   onDeleteItem: (listId: string, itemId: string) => void
+  onDeselectAll: (listId: string) => void
   newItemName: string
   onItemNameChange: (listId: string, name: string) => void
 }
@@ -42,16 +47,36 @@ export function ShoppingListCard({
   onAddItem,
   onToggleItem,
   onDeleteItem,
+  onDeselectAll,
   newItemName,
   onItemNameChange,
 }: ShoppingListCardProps) {
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const purchasedCount = list.items.filter(i => i.purchased).length
+
+  // Закрыть дропдаун при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Сортируем товары: сначала не купленные, потом купленные
   const sortedItems = [...list.items].sort((a, b) => {
     if (a.purchased === b.purchased) return 0
     return a.purchased ? 1 : -1
   })
+
+  const handleMenuAction = (action: () => void) => {
+    action()
+    setShowDropdown(false)
+  }
 
   return (
     <div className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden ${list.isShared ? 'ring-2 ring-purple-500' : ''}`}>
@@ -87,33 +112,76 @@ export function ShoppingListCard({
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-            {list.isOwner && onShare && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onShare(list.id)
-                }}
-                className="p-3 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                title="Поделиться списком"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </button>
+            {/* Кнопка меню (три точки) - только когда развернуто */}
+            {isExpanded && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowDropdown(!showDropdown)
+                  }}
+                  className="p-3 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label="Меню"
+                >
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="5" r="1.5" />
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="19" r="1.5" />
+                  </svg>
+                </button>
+
+                {/* Выпадающее меню */}
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 py-2 z-50">
+                    {list.isOwner && onShare && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleMenuAction(() => onShare(list.id))
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm"
+                      >
+                        <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        <span className="text-zinc-900 dark:text-zinc-50">Поделиться списком</span>
+                      </button>
+                    )}
+
+                    {purchasedCount > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleMenuAction(() => onDeselectAll(list.id))
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm"
+                      >
+                        <svg className="w-5 h-5 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span className="text-zinc-900 dark:text-zinc-50">Снять выделение ({purchasedCount})</span>
+                      </button>
+                    )}
+
+                    {list.isOwner && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleMenuAction(() => onDelete(list.id))
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3 text-sm text-red-600 dark:text-red-400"
+                      >
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Удалить список</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
-            {list.isOwner && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(list.id)
-                }}
-                className="p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            )}
+
             <svg
               className={`w-5 h-5 text-zinc-400 transition-transform ${
                 isExpanded ? 'rotate-180' : ''

@@ -309,6 +309,29 @@ export default function ListsPage() {
     }
   }
 
+  const deselectAll = async (listId: string) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/shopping-lists/${listId}/deselect-all`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Ошибка при снятии выделения')
+
+      setShoppingLists(lists =>
+        lists.map(list =>
+          list.id === listId
+            ? { ...list, items: data.items }
+            : list
+        )
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка при снятии выделения')
+    }
+  }
+
   // Recommendations operations
   const addItemFromRecommendations = async (itemName: string) => {
     if (!expandedListId) {
@@ -530,6 +553,7 @@ export default function ListsPage() {
                 onAddItem={addItem}
                 onToggleItem={toggleItem}
                 onDeleteItem={deleteItem}
+                onDeselectAll={deselectAll}
                 newItemName={newItemNames[list.id] || ''}
                 onItemNameChange={(id, name) =>
                   setNewItemNames({ ...newItemNames, [id]: name })
