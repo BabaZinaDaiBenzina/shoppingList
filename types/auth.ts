@@ -3,6 +3,7 @@ export interface User {
   email: string
   username: string
   name: string | null
+  role: string
   createdAt: string
   updatedAt: string
 }

@@ -473,7 +473,7 @@ export default function RecipesPage() {
                 Добавить в список покупок
               </h3>
               <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                Ингредиенты из рецепта "<strong>{selectedRecipe?.title}</strong>"
+                Ингредиенты из рецепта &quot;<strong>{selectedRecipe?.title}</strong>&quot;
               </p>
 
               {shoppingLists.length > 0 && (
@@ -510,13 +510,13 @@ export default function RecipesPage() {
 
               {shoppingLists.length > 0 && selectedListId && (
                 <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">
-                  Или создайте новый список с названием "{selectedRecipe?.title}"
+                  Или создайте новый список с названием &quot;{selectedRecipe?.title}&quot;
                 </p>
               )}
 
               {shoppingLists.length === 0 && (
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
-                  Будет создан новый список "<strong>🛒 {selectedRecipe?.title}</strong>"
+                  Будет создан новый список &quot;<strong>🛒 {selectedRecipe?.title}</strong>&quot;
                 </p>
               )}
 

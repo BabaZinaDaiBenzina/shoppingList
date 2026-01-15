@@ -10,7 +10,8 @@
     "db:logs": "docker-compose logs postgres",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "make-admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

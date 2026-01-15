@@ -94,7 +94,36 @@ export default function Home() {
         </div>
 
         {/* Карточки выбора */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`grid gap-6 ${user?.role === 'admin' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+          {/* Админ-панель (только для администраторов) */}
+          {user?.role === 'admin' && (
+            <Link
+              href="/admin"
+              className="group bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all hover:scale-105 border-2 border-transparent hover:border-red-500 dark:hover:border-red-400"
+            >
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto group-hover:scale-110 transition-transform shadow-lg">
+                  <span className="text-4xl">⚙️</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
+                    Панель администратора
+                  </h2>
+                  <p className="text-zinc-600 dark:text-zinc-400">
+                    Управление пользователями и списками покупок
+                  </p>
+                </div>
+                <div className="pt-4">
+                  <span className="inline-flex items-center gap-2 text-red-600 dark:text-red-400 font-medium group-hover:gap-3 transition-all">
+                    Перейти к панели
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )}
           {/* Списки покупок */}
           <Link
             href="/lists"

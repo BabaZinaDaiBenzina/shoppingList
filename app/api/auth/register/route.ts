@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
         email: true,
         username: true,
         name: true,
+        role: true,
         createdAt: true,
       }
     })

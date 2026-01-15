@@ -1,109 +1,117 @@
-'use client'
+"use client";
 
-import { useAuth } from '@/contexts/AuthContext'
-import { useRouter, useParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter, useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function UserProfilePage() {
-  const { user: currentUser, isAuthenticated, isLoading, logout } = useAuth()
-  const router = useRouter()
-  const params = useParams()
-  const userId = params.id as string
+  const { user: currentUser, isAuthenticated, isLoading, logout } = useAuth();
+  const router = useRouter();
+  const params = useParams();
+  const userId = params.id as string;
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [message, setMessage] = useState('')
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!isAuthenticated) {
-        router.push?.('/login')
-        return
+        router.push?.("/login");
+        return;
       }
 
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem("token");
         const response = await fetch(`/api/users/${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        })
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (!response.ok) {
-          throw new Error('Профиль не найден')
+          throw new Error("Профиль не найден");
         }
 
-        const data = await response.json()
-        setName(data.user.name || '')
-        setEmail(data.user.email || '')
+        const data = await response.json();
+        setName(data.user.name || "");
+        setEmail(data.user.email || "");
       } catch (err) {
-        setMessage(err instanceof Error ? err.message : 'Ошибка загрузки профиля')
+        setMessage(
+          err instanceof Error ? err.message : "Ошибка загрузки профиля"
+        );
       } finally {
-        setIsLoadingProfile(false)
+        setIsLoadingProfile(false);
       }
-    }
+    };
 
-    fetchProfile()
-  }, [isAuthenticated, userId])
+    fetchProfile();
+  }, [isAuthenticated, userId]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setMessage('')
+    e.preventDefault();
+    setMessage("");
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       const response = await fetch(`/api/users/${userId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ name, email }),
-      })
+      });
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Ошибка обновления профиля')
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Ошибка обновления профиля");
 
-      setMessage('Профиль успешно обновлен!')
-      setIsEditing(false)
+      setMessage("Профиль успешно обновлен!");
+      setIsEditing(false);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Ошибка обновления профиля')
+      setMessage(
+        err instanceof Error ? err.message : "Ошибка обновления профиля"
+      );
     }
-  }
+  };
 
   const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setMessage('')
+    e.preventDefault();
+    setMessage("");
 
     if (!currentPassword || !newPassword) {
-      setMessage('Заполните все поля пароля')
-      return
+      setMessage("Заполните все поля пароля");
+      return;
     }
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem("token");
       const response = await fetch(`/api/users/${userId}/password`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ currentPassword, newPassword }),
-      })
+      });
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Ошибка изменения пароля')
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Ошибка изменения пароля");
 
-      setMessage('Пароль успешно изменен!')
-      setCurrentPassword('')
-      setNewPassword('')
+      setMessage("Пароль успешно изменен!");
+      setCurrentPassword("");
+      setNewPassword("");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Ошибка изменения пароля')
+      setMessage(
+        err instanceof Error ? err.message : "Ошибка изменения пароля"
+      );
     }
-  }
+  };
 
   if (isLoading || isLoadingProfile) {
     return (
@@ -113,7 +121,7 @@ export default function UserProfilePage() {
           <p className="mt-4 text-zinc-600 dark:text-zinc-400">Загрузка...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -134,11 +142,13 @@ export default function UserProfilePage() {
           </div>
 
           {message && (
-            <div className={`mb-4 px-4 py-3 rounded-lg ${
-              message.includes('успешно')
-                ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400'
-                : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
-            }`}>
+            <div
+              className={`mb-4 px-4 py-3 rounded-lg ${
+                message.includes("успешно")
+                  ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400"
+                  : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
+              }`}
+            >
               {message}
             </div>
           )}
@@ -148,7 +158,7 @@ export default function UserProfilePage() {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-2xl font-bold text-white">
-                  {name?.[0] || currentUser?.username?.[0].toUpperCase() || '?'}
+                  {name?.[0] || currentUser?.username?.[0].toUpperCase() || "?"}
                 </span>
               </div>
               <div>
@@ -165,20 +175,36 @@ export default function UserProfilePage() {
               <div className="space-y-3 pt-4">
                 <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-700">
                   <span className="text-zinc-600 dark:text-zinc-400">Имя:</span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">{name || 'Не указано'}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-700">
-                  <span className="text-zinc-600 dark:text-zinc-400">Логин:</span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">{currentUser?.username}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-700">
-                  <span className="text-zinc-600 dark:text-zinc-400">Email:</span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">{email}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-700">
-                  <span className="text-zinc-600 dark:text-zinc-400">Зарегистрирован:</span>
                   <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                    {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('ru-RU') : 'N/A'}
+                    {name || "Не указано"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-700">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Логин:
+                  </span>
+                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                    {currentUser?.username}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-700">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Email:
+                  </span>
+                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                    {email}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-zinc-200 dark:border-zinc-700">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Зарегистрирован:
+                  </span>
+                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                    {currentUser?.createdAt
+                      ? new Date(currentUser.createdAt).toLocaleDateString(
+                          "ru-RU"
+                        )
+                      : "N/A"}
                   </span>
                 </div>
 
@@ -286,5 +312,5 @@ export default function UserProfilePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
