@@ -47,13 +47,38 @@ model ListShare {
   @@unique([listId, userId])
 }
 
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  icon        String?   // Emoji or icon for UI display
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  unit        String?   // Default unit: "шт", "кг", "л", "г", etc.
+  items       Item[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([categoryId, name])
+}
+
 model Item {
   id           String        @id @default(cuid())
-  name         String
+  name         String        // Custom name or fallback if product is null
   quantity     Int           @default(1)
   purchased    Boolean       @default(false)
   listId       String
   list         ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  productId    String?       // Optional reference to Product catalog
+  product      Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }

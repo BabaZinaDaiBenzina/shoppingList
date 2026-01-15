@@ -16,6 +16,13 @@ export async function GET(request: NextRequest) {
       where: { userId },
       include: {
         items: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          },
           orderBy: { createdAt: 'asc' }
         }
       },
@@ -33,6 +40,13 @@ export async function GET(request: NextRequest) {
       },
       include: {
         items: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          },
           orderBy: { createdAt: 'asc' }
         },
         user: {
@@ -107,7 +121,15 @@ export async function POST(request: NextRequest) {
         userId,
       },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          }
+        },
       }
     })
 

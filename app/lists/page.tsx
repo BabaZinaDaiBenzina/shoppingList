@@ -3,15 +3,28 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { ShoppingListCard } from './components/ShoppingListCard'
-import { RecommendationsPanel } from './components/RecommendationsPanel'
+import { GroupedShoppingListCard } from './components/GroupedShoppingListCard'
+import { ProductSelector } from './components/ProductSelector'
+import { ProductManager } from './components/ProductManager'
 import { ShareModal } from './components/ShareModal'
+
+interface Product {
+  id: string
+  name: string
+  unit: string | null
+  category: {
+    id: string
+    name: string
+    icon: string | null
+  }
+}
 
 interface Item {
   id: string
   name: string
   quantity: number
   purchased: boolean
+  product?: Product | null
 }
 
 interface ShoppingList {
@@ -29,30 +42,22 @@ interface ShoppingList {
   }
 }
 
-interface GroceryCategory {
-  id: string
-  name: string
-  icon: string
-  items: string[]
-}
-
 export default function ListsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
   // State
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([])
-  const [recommendations, setRecommendations] = useState<GroceryCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [newListName, setNewListName] = useState('')
   const [expandedListId, setExpandedListId] = useState<string | null>(null)
   const [newItemNames, setNewItemNames] = useState<Record<string, string>>({})
-  const [showRecommendations, setShowRecommendations] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [shareModalListId, setShareModalListId] = useState<string | null>(null)
+  const [showProductSelector, setShowProductSelector] = useState(false)
+  const [showProductManager, setShowProductManager] = useState(false)
 
   // Effects
   useEffect(() => {
@@ -64,7 +69,6 @@ export default function ListsPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchShoppingLists()
-      fetchRecommendations()
     }
   }, [isAuthenticated])
 
@@ -149,22 +153,6 @@ export default function ListsPage() {
     }
   }
 
-  const fetchRecommendations = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/recommendations', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
-
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке рекомендаций')
-
-      setRecommendations(data.recommendations)
-    } catch (err) {
-      console.error('Ошибка загрузки рекомендаций:', err)
-    }
-  }
-
   // Lists operations
   const createList = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -213,7 +201,7 @@ export default function ListsPage() {
   }
 
   // Items operations
-  const addItem = async (listId: string, itemName: string) => {
+  const addItem = async (listId: string, itemName: string, productId?: string) => {
     if (!itemName?.trim()) return
 
     const list = shoppingLists.find(l => l.id === listId)
@@ -235,7 +223,11 @@ export default function ListsPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: itemName.trim(), quantity: 1 }),
+        body: JSON.stringify({
+          name: itemName.trim(),
+          quantity: 1,
+          productId: productId || null
+        }),
       })
 
       const data = await response.json()
@@ -254,6 +246,14 @@ export default function ListsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при добавлении товара')
     }
+  }
+
+  const addProductFromCatalog = (product: Product, quantity: number) => {
+    if (!expandedListId) {
+      setError('Откройте список, чтобы добавлять товары')
+      return
+    }
+    addItem(expandedListId, product.name, product.id)
   }
 
   const toggleItem = async (listId: string, itemId: string) => {
@@ -332,108 +332,6 @@ export default function ListsPage() {
     }
   }
 
-  // Recommendations operations
-  const addItemFromRecommendations = async (itemName: string) => {
-    if (!expandedListId) {
-      setError('Откройте список, чтобы добавлять товары')
-      return
-    }
-
-    const listId = expandedListId
-    const list = shoppingLists.find(l => l.id === listId)
-
-    if (list) {
-      const exists = list.items.some(
-        item => item.name.toLowerCase() === itemName.toLowerCase()
-      )
-      if (exists) return // Пропускаем, если уже есть
-    }
-
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/shopping-lists/${listId}/items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: itemName, quantity: 1 }),
-      })
-
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Ошибка при добавлении товара')
-
-      setShoppingLists(lists =>
-        lists.map(list =>
-          list.id === listId
-            ? { ...list, items: [...list.items, data.item] }
-            : list
-        )
-      )
-
-      setError('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при добавлении товара')
-    }
-  }
-
-  const addCategoryToList = async (categoryItems: string[]) => {
-    if (!expandedListId) {
-      setError('Откройте список, чтобы добавлять товары')
-      return
-    }
-
-    const listId = expandedListId
-    const list = shoppingLists.find(l => l.id === listId)
-    if (!list) return
-
-    const itemsToAdd = categoryItems.filter(itemName => {
-      return !list.items.some(
-        item => item.name.toLowerCase() === itemName.toLowerCase()
-      )
-    })
-
-    if (itemsToAdd.length === 0) {
-      setError('Все товары из этой категории уже в списке')
-      return
-    }
-
-    const token = localStorage.getItem('token')
-    const promises = itemsToAdd.map(itemName =>
-      fetch(`/api/shopping-lists/${listId}/items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: itemName, quantity: 1 }),
-      })
-    )
-
-    try {
-      const responses = await Promise.all(promises)
-      const newItems = await Promise.all(
-        responses.map(async res => {
-          const data = await res.json()
-          if (!res.ok) throw new Error(data.error)
-          return data.item
-        })
-      )
-
-      setShoppingLists(lists =>
-        lists.map(list =>
-          list.id === listId
-            ? { ...list, items: [...list.items, ...newItems] }
-            : list
-        )
-      )
-
-      setError(`Добавлено ${newItems.length} товаров`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при добавлении товаров')
-    }
-  }
-
   // Helper functions
   const isItemInList = (itemName: string) => {
     if (!expandedListId) return false
@@ -485,31 +383,28 @@ export default function ListsPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-50">
               🛒 Списки покупок
             </h1>
-            <button
-              onClick={() => setShowRecommendations(!showRecommendations)}
-              className="px-4 py-3 md:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
-            >
-              <span>💡</span>
-              Рекомендации
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowProductManager(true)}
+                className="px-4 py-3 md:py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
+              >
+                <span>⚙️</span>
+                Управление
+              </button>
+              <button
+                onClick={() => setShowProductSelector(true)}
+                className="px-4 py-3 md:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
+              >
+                <span>📦</span>
+                Каталог
+              </button>
+            </div>
           </div>
 
           {error && (
             <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
               {error}
             </div>
-          )}
-
-          {showRecommendations && (
-            <RecommendationsPanel
-              recommendations={recommendations}
-              selectedCategory={selectedCategory}
-              onCategorySelect={setSelectedCategory}
-              onAddItem={addItemFromRecommendations}
-              onAddCategory={addCategoryToList}
-              isItemInList={isItemInList}
-              hasOpenList={!!expandedListId}
-            />
           )}
 
           <form onSubmit={createList} className="flex gap-2 md:gap-3">
@@ -543,7 +438,7 @@ export default function ListsPage() {
             </div>
           ) : (
             shoppingLists.map((list) => (
-              <ShoppingListCard
+              <GroupedShoppingListCard
                 key={list.id}
                 list={list}
                 isExpanded={expandedListId === list.id}
@@ -572,6 +467,21 @@ export default function ListsPage() {
             onClose={() => setShareModalListId(null)}
           />
         )}
+
+        {/* Модальное окно выбора продуктов */}
+        <ProductSelector
+          isOpen={showProductSelector}
+          onClose={() => setShowProductSelector(false)}
+          onAddProduct={addProductFromCatalog}
+          isItemInList={isItemInList}
+          hasOpenList={!!expandedListId}
+        />
+
+        {/* Модальное окно управления каталогом */}
+        <ProductManager
+          isOpen={showProductManager}
+          onClose={() => setShowProductManager(false)}
+        />
       </div>
     </div>
   )

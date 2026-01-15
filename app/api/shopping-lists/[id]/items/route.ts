@@ -16,7 +16,7 @@ export async function POST(
 
     const { id: listId } = await params
     const body = await request.json()
-    const { name, quantity = 1 } = body
+    const { name, quantity = 1, productId } = body
 
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
@@ -40,6 +40,14 @@ export async function POST(
         name: name.trim(),
         quantity: Math.max(1, quantity),
         listId,
+        productId: productId || null,
+      },
+      include: {
+        product: {
+          include: {
+            category: true
+          }
+        }
       }
     })
 
