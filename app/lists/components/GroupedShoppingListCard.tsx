@@ -64,7 +64,7 @@ export function GroupedShoppingListCard({
   onItemNameChange,
 }: GroupedShoppingListCardProps) {
   const [showDropdown, setShowDropdown] = useState(false)
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const dropdownRef = useRef<HTMLDivElement>(null)
   const purchasedCount = list.items.filter(i => i.purchased).length
 
@@ -118,7 +118,7 @@ export function GroupedShoppingListCard({
   }
 
   const toggleCategory = (categoryId: string) => {
-    setCollapsedCategories(prev => {
+    setExpandedCategories(prev => {
       const newSet = new Set(prev)
       if (newSet.has(categoryId)) {
         newSet.delete(categoryId)
@@ -281,7 +281,7 @@ export function GroupedShoppingListCard({
           ) : (
             <div className="space-y-3">
               {sortedCategories.map((category) => {
-                const isCollapsed = collapsedCategories.has(category.id)
+                const isCollapsed = !expandedCategories.has(category.id)
 
                 return (
                   <div key={category.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
