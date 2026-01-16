@@ -282,6 +282,7 @@ export function GroupedShoppingListCard({
             <div className="space-y-3">
               {sortedCategories.map((category) => {
                 const isCollapsed = !expandedCategories.has(category.id)
+                const purchasedInCategory = category.items.filter(i => i.purchased).length
 
                 return (
                   <div key={category.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
@@ -303,7 +304,7 @@ export function GroupedShoppingListCard({
                       <span className="text-lg">{category.icon}</span>
                       <span className="font-medium text-zinc-900 dark:text-zinc-50">{category.name}</span>
                       <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                        ({category.items.length})
+                        ({purchasedInCategory}/{category.items.length})
                       </span>
                     </button>
 
