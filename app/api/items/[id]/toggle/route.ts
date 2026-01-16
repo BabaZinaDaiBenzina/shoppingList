@@ -43,6 +43,13 @@ export async function PATCH(
       where: { id },
       data: {
         purchased: !item.purchased
+      },
+      include: {
+        product: {
+          include: {
+            category: true
+          }
+        }
       }
     })
 
