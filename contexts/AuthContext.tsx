@@ -10,22 +10,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Загрузка данных из localStorage при монтировании
+  // Загрузка данных пользователя из localStorage при монтировании
+  // Токен теперь в httpOnly cookie - недоступен из JavaScript
   useEffect(() => {
-    const loadAuthData = () => {
+    const loadAuthData = async () => {
       try {
-        const storedToken = localStorage.getItem('token')
+        // Загружаем только пользователя из localStorage для UI
         const storedUser = localStorage.getItem('user')
 
-        if (storedToken && storedUser) {
-          setToken(storedToken)
+        if (storedUser) {
           setUser(JSON.parse(storedUser))
+        }
+
+        // Проверяем валидность сессии через API
+        const response = await fetch('/api/auth/me')
+
+        if (response.ok) {
+          const data = await response.json()
+          setUser(data.user)
+          localStorage.setItem('user', JSON.stringify(data.user))
+        } else if (storedUser) {
+          // Если сессия недействительна, очищаем данные
+          localStorage.removeItem('user')
+          setUser(null)
         }
       } catch (error) {
         console.error('Ошибка загрузки данных авторизации:', error)
         // Очищаем поврежденные данные
-        localStorage.removeItem('token')
         localStorage.removeItem('user')
+        setUser(null)
       } finally {
         setIsLoading(false)
       }
@@ -34,19 +47,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadAuthData()
   }, [])
 
-  // Функция для сохранения данных в localStorage
-  const saveAuthData = (userData: User, authToken: string) => {
-    localStorage.setItem('token', authToken)
+  // Функция для сохранения данных пользователя в localStorage
+  // Токен НЕ сохраняем - он в httpOnly cookie
+  const saveAuthData = (userData: User) => {
     localStorage.setItem('user', JSON.stringify(userData))
-    setToken(authToken)
     setUser(userData)
   }
 
   // Функция для очистки данных авторизации
   const clearAuthData = () => {
-    localStorage.removeItem('token')
     localStorage.removeItem('user')
-    setToken(null)
     setUser(null)
   }
 
@@ -60,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(credentials),
+        // Cookie автоматически отправляется браузером
       })
 
       const data = await response.json()
@@ -68,7 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || 'Ошибка при регистрации')
       }
 
-      saveAuthData(data.user, data.token)
+      // Токен установлен в httpOnly cookie, сохраняем только пользователя
+      saveAuthData(data.user)
     } finally {
       setIsLoading(false)
     }
@@ -84,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(credentials),
+        // Cookie автоматически отправляется браузером
       })
 
       const data = await response.json()
@@ -92,7 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || 'Ошибка при входе')
       }
 
-      saveAuthData(data.user, data.token)
+      // Токен установлен в httpOnly cookie, сохраняем только пользователя
+      saveAuthData(data.user)
     } finally {
       setIsLoading(false)
     }
@@ -115,15 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Обновление данных пользователя
   const refreshUser = async () => {
-    if (!token) return
-
     setIsLoading(true)
     try {
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
+      // Cookie автоматически отправляется браузером
+      const response = await fetch('/api/auth/me')
 
       const data = await response.json()
 
@@ -135,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user', JSON.stringify(data.user))
     } catch (error) {
       console.error('Ошибка обновления пользователя:', error)
-      // Если токен недействителен, выходим
+      // Если сессия недействительна, выходим
       clearAuthData()
     } finally {
       setIsLoading(false)

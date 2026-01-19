@@ -49,10 +49,8 @@ export function ProductManager({
   const fetchCategories = async () => {
     setIsLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/categories/admin', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch('/api/categories/admin')
 
       const data = await response.json()
       if (response.ok) {
@@ -111,7 +109,7 @@ export function ProductManager({
   const saveCategory = async () => {
     setError('')
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const url = editingCategory
         ? `/api/categories/admin/${editingCategory.id}`
         : '/api/categories/admin'
@@ -120,7 +118,6 @@ export function ProductManager({
         method: editingCategory ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(categoryForm),
       })
@@ -143,10 +140,9 @@ export function ProductManager({
 
     setError('')
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/categories/admin/${categoryId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       const data = await response.json()
@@ -164,7 +160,7 @@ export function ProductManager({
   const saveProduct = async () => {
     setError('')
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const url = editingProduct
         ? `/api/products/admin/${editingProduct.id}`
         : '/api/products/admin'
@@ -173,7 +169,6 @@ export function ProductManager({
         method: editingProduct ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(productForm),
       })
@@ -196,10 +191,9 @@ export function ProductManager({
 
     setError('')
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/products/admin/${productId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       const data = await response.json()

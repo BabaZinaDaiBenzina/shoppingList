@@ -1,24 +1,59 @@
 import { NextRequest } from 'next/server'
-import { verifyToken } from './auth'
+import { verifyToken, AUTH_COOKIE_NAME } from './auth'
 import { prisma } from './prisma'
 
+/**
+ * Извлекает токен из httpOnly cookie
+ */
+function getTokenFromCookie(request: NextRequest): string | null {
+  // Читаем токен из cookie
+  const cookie = request.headers.get('cookie')
+
+  if (!cookie) {
+    return null
+  }
+
+  // Парсим cookie
+  const cookies = cookie.split(';').map(c => c.trim())
+  const authCookie = cookies.find(c => c.startsWith(`${AUTH_COOKIE_NAME}=`))
+
+  if (!authCookie) {
+    return null
+  }
+
+  return authCookie.substring(AUTH_COOKIE_NAME.length + 1) // +1 для '='
+}
+
+/**
+ * Получает ID авторизованного пользователя из httpOnly cookie
+ *
+ * Резервная поддержка Authorization header для обратной совместимости
+ */
 export async function getAuthenticatedUser(request: NextRequest) {
   try {
-    // Получаем токен из заголовка Authorization
+    // Сначала пробуем cookie (новый способ)
+    const tokenFromCookie = getTokenFromCookie(request)
+
+    if (tokenFromCookie) {
+      const decoded = verifyToken(tokenFromCookie)
+      if (decoded) {
+        return decoded.userId
+      }
+    }
+
+    // Fallback на Authorization header для обратной совместимости
     const authHeader = request.headers.get('authorization')
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7) // Убираем 'Bearer '
+      const decoded = verifyToken(token)
+
+      if (decoded) {
+        return decoded.userId
+      }
     }
 
-    const token = authHeader.substring(7) // Убираем 'Bearer '
-    const decoded = verifyToken(token)
-
-    if (!decoded) {
-      return null
-    }
-
-    return decoded.userId
+    return null
   } catch {
     return null
   }
@@ -26,14 +61,24 @@ export async function getAuthenticatedUser(request: NextRequest) {
 
 export async function getAuthenticatedAdmin(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
+    // Сначала пробуем cookie
+    const tokenFromCookie = getTokenFromCookie(request)
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null
+    let decoded = null
+
+    if (tokenFromCookie) {
+      decoded = verifyToken(tokenFromCookie)
     }
 
-    const token = authHeader.substring(7)
-    const decoded = verifyToken(token)
+    // Fallback на Authorization header
+    if (!decoded) {
+      const authHeader = request.headers.get('authorization')
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7)
+        decoded = verifyToken(token)
+      }
+    }
 
     if (!decoded) {
       return null

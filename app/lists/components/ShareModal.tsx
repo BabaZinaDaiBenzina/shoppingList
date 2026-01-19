@@ -75,10 +75,8 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
   const fetchShares = async () => {
     setIsLoadingShares(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/shopping-lists/${listId}/share`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch(`/api/shopping-lists/${listId}/share`)
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списка')
@@ -94,10 +92,8 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
   const searchUsers = async (query: string) => {
     setIsSearching(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при поиске')
@@ -119,12 +115,11 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
     if (!selectedUser) return
 
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ targetUserId: selectedUser.id }),
       })
@@ -146,10 +141,9 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
     if (!confirm('Вы уверены, что хотите отменить доступ к списку?')) return
 
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/share?userId=${userId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       if (!response.ok) {

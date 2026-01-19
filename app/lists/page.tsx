@@ -149,10 +149,8 @@ export default function ListsPage() {
   // API calls
   const fetchShoppingLists = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/shopping-lists', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch('/api/shopping-lists')
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списков')
@@ -183,10 +181,8 @@ export default function ListsPage() {
 
   const fetchCategories = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/categories', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch('/api/categories')
 
       const data = await response.json()
       if (response.ok) {
@@ -229,12 +225,11 @@ export default function ListsPage() {
 
     // Онлайн режим: отправляем на сервер
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch('/api/shopping-lists', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ name: newListName }),
       })
@@ -264,10 +259,9 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       if (!response.ok) {
@@ -338,12 +332,11 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: trimmedName,
@@ -426,10 +419,9 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/items/${itemId}/toggle`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       const data = await response.json()
@@ -488,10 +480,9 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/items/${itemId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       if (!response.ok) {
@@ -513,10 +504,9 @@ export default function ListsPage() {
 
   const deselectAll = async (listId: string) => {
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/deselect-all`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       const data = await response.json()

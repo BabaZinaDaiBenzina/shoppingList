@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { hashPassword, generateToken } from '@/lib/auth'
+import { hashPassword, generateToken, setAuthCookie } from '@/lib/auth'
+import { rateLimitMiddleware, rateLimits } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
+  // Rate limiting - защита от спама регистраций
+  const rateLimit = rateLimitMiddleware(request, rateLimits.auth)
+
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Слишком много попыток регистрации. Попробуйте позже.' },
+      {
+        status: 429,
+        headers: rateLimit.headers
+      }
+    )
+  }
+
   try {
     const body = await request.json()
     const { email, username, password, name } = body
@@ -71,10 +85,16 @@ export async function POST(request: NextRequest) {
     // Генерация токена
     const token = generateToken(user.id)
 
-    return NextResponse.json({
+    // Устанавливаем httpOnly cookie с токеном
+    const response = NextResponse.json({
       user,
-      token,
+      // Токен больше не возвращается в теле ответа для безопасности
     }, { status: 201 })
+
+    // Устанавливаем cookie
+    response.headers.set('Set-Cookie', setAuthCookie(token))
+
+    return response
 
   } catch (error) {
     console.error('Registration error:', error)

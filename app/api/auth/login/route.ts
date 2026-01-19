@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyPassword, generateToken } from '@/lib/auth'
+import { verifyPassword, generateToken, setAuthCookie } from '@/lib/auth'
+import { rateLimitMiddleware, rateLimits } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
+  // Rate limiting - защита от brute force
+  const rateLimit = rateLimitMiddleware(request, rateLimits.auth)
+
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Слишком много попыток. Попробуйте позже.' },
+      {
+        status: 429,
+        headers: rateLimit.headers
+      }
+    )
+  }
+
   try {
     const body = await request.json()
     const { email, password } = body
@@ -43,10 +57,16 @@ export async function POST(request: NextRequest) {
     // Возвращаем данные пользователя без пароля
     const { passwordHash, ...userWithoutPassword } = user
 
-    return NextResponse.json({
+    // Устанавливаем httpOnly cookie с токеном
+    const response = NextResponse.json({
       user: userWithoutPassword,
-      token,
+      // Токен больше не возвращается в теле ответа для безопасности
     })
+
+    // Устанавливаем cookie
+    response.headers.set('Set-Cookie', setAuthCookie(token))
+
+    return response
 
   } catch (error) {
     console.error('Login error:', error)

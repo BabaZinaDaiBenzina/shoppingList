@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server'
+import { clearAuthCookie } from '@/lib/auth'
 
 export async function POST() {
-  // Для JWT токенов нет необходимости инвалидировать их на сервере
-  // Клиент должен просто удалить токен из хранилища
-  return NextResponse.json({
-    message: 'Успешный выход. Удалите токен на клиенте.',
+  // Создаём ответ и удаляем httpOnly cookie
+  const response = NextResponse.json({
+    message: 'Успешный выход',
   })
+
+  // Удаляем cookie
+  response.headers.set('Set-Cookie', clearAuthCookie())
+
+  return response
 }

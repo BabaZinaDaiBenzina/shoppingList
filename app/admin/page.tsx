@@ -66,12 +66,8 @@ export default function AdminPage() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch('/api/admin/users')
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
@@ -92,12 +88,9 @@ export default function AdminPage() {
 
   const deleteUser = async (userId: string) => {
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       })
 
       if (!response.ok) {
@@ -114,12 +107,9 @@ export default function AdminPage() {
 
   const deleteShoppingList = async (listId: string) => {
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/admin/shopping-lists/${listId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       })
 
       if (!response.ok) {

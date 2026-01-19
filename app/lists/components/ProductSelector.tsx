@@ -59,10 +59,8 @@ export function ProductSelector({
 
   const fetchCategories = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/categories', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch('/api/categories')
 
       const data = await response.json()
       if (response.ok) {
@@ -76,7 +74,7 @@ export function ProductSelector({
   const fetchProducts = async () => {
     setIsLoading(true)
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const params = new URLSearchParams()
 
       if (selectedCategory) {
@@ -86,9 +84,7 @@ export function ProductSelector({
         params.append('search', searchQuery.trim())
       }
 
-      const response = await fetch(`/api/products?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      const response = await fetch(`/api/products?${params}`)
 
       const data = await response.json()
       if (response.ok) {

@@ -59,10 +59,8 @@ export default function RecipesPage() {
 
   const fetchRecipes = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/recipes', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch('/api/recipes')
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке рецептов')
@@ -80,12 +78,11 @@ export default function RecipesPage() {
     if (!newRecipe.title.trim()) return
 
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           title: newRecipe.title,
@@ -118,10 +115,9 @@ export default function RecipesPage() {
 
   const deleteRecipe = async (recipeId: string) => {
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/recipes/${recipeId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
       })
 
       if (!response.ok) {
@@ -137,10 +133,8 @@ export default function RecipesPage() {
 
   const fetchShoppingLists = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/shopping-lists', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+      // Cookie автоматически отправляется браузером (httpOnly)
+      const response = await fetch('/api/shopping-lists')
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списков')
@@ -165,14 +159,13 @@ export default function RecipesPage() {
     // Если список не выбран или списков нет, создаем новый
     if (!targetListId || shoppingLists.length === 0) {
       try {
-        const token = localStorage.getItem('token')
+        // Cookie автоматически отправляется браузером (httpOnly)
         const newListName = `🛒 ${selectedRecipe.title}`
 
         const response = await fetch('/api/shopping-lists', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({ name: newListName }),
         })
@@ -194,13 +187,12 @@ export default function RecipesPage() {
     }
 
     try {
-      const token = localStorage.getItem('token')
+      // Cookie автоматически отправляется браузером (httpOnly)
       const promises = ingredients.map((ingredient: string) =>
         fetch(`/api/shopping-lists/${targetListId}/items`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({ name: ingredient.trim(), quantity: 1 }),
         })
