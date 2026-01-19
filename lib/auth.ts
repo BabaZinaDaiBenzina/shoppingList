@@ -99,7 +99,7 @@ export function getAuthCookieOptions(): {
     name: AUTH_COOKIE_NAME,
     options: {
       httpOnly: true, // Токен недоступен из JavaScript (защита от XSS)
-      secure: isProduction, // HTTPS только в продакшене
+      secure: false, // Временно отключено для отладки (включить true после настройки HTTPS)
       sameSite: 'strict', // Защита от CSRF
       path: '/', // Доступен на всех страницах
       maxAge: 7 * 24 * 60 * 60, // 7 дней в секундах
