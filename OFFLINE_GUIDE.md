@@ -261,3 +261,140 @@ await indexedDB.getAllShoppingLists().then(l => console.log('Списки:', l))
 - [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 - [PWA Best Practices](https://web.dev/pwa-checklist/)
 - [Workbox](https://developers.google.com/web/tools/workbox)
+
+## Развертывание на продакшене (Production)
+
+### ⚠️ Важные требования для работы офлайн режима:
+
+#### 1. **HTTPS обязателен**
+Service Worker работает только по HTTPS (исключение: localhost)
+
+**Проверьте:**
+```bash
+# Проверьте HTTPS на вашем домене
+curl -I https://your-domain.com
+```
+
+#### 2. **Nginx конфигурация**
+Обновите `/etc/nginx/sites-available/shoppinglist`:
+
+```nginx
+# Service Worker - критические заголовки
+location /sw.js {
+    proxy_pass http://localhost:3000;
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+    add_header Service-Worker-Allowed /;  # Важно!
+}
+
+# Workbox скрипты
+location /workbox-*.js {
+    proxy_pass http://localhost:3000;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
+# Manifest
+location /manifest.webmanifest {
+    proxy_pass http://localhost:3000;
+    add_header Cache-Control "public, max-age=604800";
+    add_header Content-Type application/manifest+json;
+}
+```
+
+**После обновления конфига:**
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+#### 3. **Сборка приложения**
+```bash
+# Собрать продакшен версию
+npm run build
+
+# Проверить что sw.js и manifest.webmanifest созданы
+ls -la .next/static/ | grep -E "(sw|workbox|manifest)"
+ls -la public/ | grep -E "(sw|workbox|manifest)"
+```
+
+#### 4. **Запуск на проде**
+```bash
+# Docker
+docker-compose up -d
+
+# Или напрямую
+NODE_ENV=production npm start
+```
+
+### 🔍 Проверка работы:
+
+#### 1. Service Worker зарегистрирован?
+Откройте Chrome DevTools → Application → Service Workers
+Должно показать: "Service Worker is active"
+
+#### 2. Manifest загружается?
+DevTools → Application → Manifest
+Должен показывать данные из manifest.webmanifest
+
+#### 3. Консоль браузера:
+Должны быть логи:
+```
+✅ Service Worker зарегистрирован: ServiceWorkerRegistration
+```
+
+#### 4. Офлайн режим работает?
+DevTools → Network → Установить галочку "Offline"
+Обновите страницу - приложение должно работать!
+
+### ❌ Если не работает:
+
+#### Проблема: Service Worker не регистрируется
+**Решения:**
+1. Проверьте HTTPS (обязателен!)
+2. Проверьте что sw.js доступен: `curl https://your-domain.com/sw.js`
+3. Проверьте заголовки: `curl -I https://your-domain.com/sw.js`
+4. Очистите кэш: DevTools → Application → Clear storage
+
+#### Проблема: Манифест не загружается
+**Решения:**
+1. Проверьте наличие файла: `ls public/manifest.webmanifest`
+2. Проверьте Content-Type: `curl -I https://your-domain.com/manifest.webmanifest`
+3. Должен быть: `Content-Type: application/manifest+json`
+
+#### Проблема: Работает на localhost, но не на проде
+**Причины:**
+- Нет HTTPS
+- Nginx не проксирует Service Worker
+- Файлы не попали в сборку
+- Кэширование старой версии
+
+**Решение:**
+```bash
+# Пересобрать приложение
+rm -rf .next
+npm run build
+
+# Очистить кэш на клиенте
+# DevTools → Application → Clear storage → Clear site data
+```
+
+#### Проблема: IndexedDB ошибки
+**Решение:**
+```javascript
+// Сбросить IndexedDB в консоли
+await indexedDB.reset()
+
+// Или очистить через DevTools
+// Application → IndexedDB → ShoppingListDB → Delete
+```
+
+### ✅ Чек-лист перед деплоем:
+
+- [ ] HTTPS настроен и работает
+- [ ] Nginx конфиг обновлён (Service-Worker-Allowed заголовок)
+- [ ] `npm run build` выполнен успешно
+- [ ] `public/manifest.webmanifest` существует
+- [ ] `public/sw.js` существует
+- [ ] Service Worker регистрируется (DevTools → Application → Service Workers)
+- [ ] Manifest загружается (DevTools → Application → Manifest)
+- [ ] Офлайн режим работает (Network → Offline)
+- [ ] Консоль без ошибок
