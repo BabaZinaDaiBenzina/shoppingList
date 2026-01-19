@@ -36,18 +36,27 @@ interface ShoppingList {
   }
 }
 
+interface Category {
+  id: string
+  name: string
+  icon: string | null
+}
+
 interface GroupedShoppingListCardProps {
   list: ShoppingList
   isExpanded: boolean
   onToggle: (listId: string) => void
   onDelete: (listId: string) => void
   onShare?: (listId: string) => void
-  onAddItem: (listId: string, itemName: string, productId?: string) => void
+  onAddItem: (listId: string, itemName: string, productId?: string, categoryId?: string) => void
   onToggleItem: (listId: string, itemId: string) => void
   onDeleteItem: (listId: string, itemId: string) => void
   onDeselectAll: (listId: string) => void
   newItemName: string
   onItemNameChange: (listId: string, name: string) => void
+  categories: Category[]
+  selectedCategoryId: string | null
+  onCategoryChange: (categoryId: string | null) => void
 }
 
 export function GroupedShoppingListCard({
@@ -62,6 +71,9 @@ export function GroupedShoppingListCard({
   onDeselectAll,
   newItemName,
   onItemNameChange,
+  categories,
+  selectedCategoryId,
+  onCategoryChange,
 }: GroupedShoppingListCardProps) {
   const [showDropdown, setShowDropdown] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
@@ -251,7 +263,7 @@ export function GroupedShoppingListCard({
       {isExpanded && (
         <div className="border-t border-zinc-200 dark:border-zinc-700 p-6">
           {/* Форма добавления товара */}
-          <div className="flex gap-2 md:gap-3 mb-4">
+          <div className="space-y-3 mb-4">
             <input
               type="text"
               value={newItemName}
@@ -259,15 +271,43 @@ export function GroupedShoppingListCard({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
-                  onAddItem(list.id, newItemName)
+                  onAddItem(list.id, newItemName, undefined, selectedCategoryId || undefined)
                 }
               }}
               placeholder="Добавить товар..."
-              className="flex-1 min-w-0 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
+              className="w-full px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
             />
+
+            {/* Селектор категорий */}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => onCategoryChange(null)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedCategoryId === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                }`}
+              >
+                Без категории
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => onCategoryChange(category.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedCategoryId === category.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                  }`}
+                >
+                  {category.icon} {category.name}
+                </button>
+              ))}
+            </div>
+
             <button
-              onClick={() => onAddItem(list.id, newItemName)}
-              className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base whitespace-nowrap flex-shrink-0"
+              onClick={() => onAddItem(list.id, newItemName, undefined, selectedCategoryId || undefined)}
+              className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base"
             >
               Добавить
             </button>

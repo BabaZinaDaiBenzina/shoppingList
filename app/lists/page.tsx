@@ -7,6 +7,8 @@ import { GroupedShoppingListCard } from './components/GroupedShoppingListCard'
 import { ProductSelector } from './components/ProductSelector'
 import { ProductManager } from './components/ProductManager'
 import { ShareModal } from './components/ShareModal'
+import { useOfflineData } from '@/hooks/useOfflineData'
+import { indexedDB } from '@/lib/services/indexedDB'
 
 interface Product {
   id: string
@@ -42,9 +44,16 @@ interface ShoppingList {
   }
 }
 
+interface Category {
+  id: string
+  name: string
+  icon: string | null
+}
+
 export default function ListsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  const { isOnline, isInitialized, getOfflineLists, saveOfflineList, deleteOfflineList, enqueueOperation } = useOfflineData()
 
   // State
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([])
@@ -58,6 +67,8 @@ export default function ListsPage() {
   const [shareModalListId, setShareModalListId] = useState<string | null>(null)
   const [showProductSelector, setShowProductSelector] = useState(false)
   const [showProductManager, setShowProductManager] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
   // Effects
   useEffect(() => {
@@ -69,6 +80,7 @@ export default function ListsPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchShoppingLists()
+      fetchCategories()
     }
   }, [isAuthenticated])
 
@@ -146,10 +158,42 @@ export default function ListsPage() {
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списков')
 
       setShoppingLists(data.shoppingLists)
+
+      // Сохраняем в IndexedDB
+      for (const list of data.shoppingLists) {
+        await saveOfflineList(list)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при загрузке списков')
+      // Если ошибка сети или офлайн, пробуем загрузить из IndexedDB
+      if (isInitialized) {
+        const offlineLists = await getOfflineLists()
+        if (offlineLists.length > 0) {
+          setShoppingLists(offlineLists)
+          setError('Офлайн режим. Показаны локально сохраненные данные.')
+        } else {
+          setError(err instanceof Error ? err.message : 'Ошибка при загрузке списков')
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Ошибка при загрузке списков')
+      }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/categories', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        setCategories(data.categories)
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки категорий:', err)
     }
   }
 
@@ -158,6 +202,32 @@ export default function ListsPage() {
     e.preventDefault()
     if (!newListName.trim()) return
 
+    // Генерируем временный ID для офлайн режима
+    const tempId = `temp-${Date.now()}`
+
+    if (!isOnline) {
+      // Офлайн режим: создаем локально
+      const tempList = {
+        id: tempId,
+        name: newListName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        items: [],
+        isOwner: true
+      }
+
+      setShoppingLists([tempList, ...shoppingLists])
+      await saveOfflineList(tempList)
+
+      // Добавляем в очередь синхронизации
+      await enqueueOperation('CREATE', '/api/shopping-lists', 'POST', { name: newListName })
+
+      setNewListName('')
+      setError('Список создан офлайн. Синхронизация при подключении к сети.')
+      return
+    }
+
+    // Онлайн режим: отправляем на сервер
     try {
       const token = localStorage.getItem('token')
       const response = await fetch('/api/shopping-lists', {
@@ -173,6 +243,7 @@ export default function ListsPage() {
       if (!response.ok) throw new Error(data.error || 'Ошибка при создании списка')
 
       setShoppingLists([data.shoppingList, ...shoppingLists])
+      await saveOfflineList(data.shoppingList)
       setNewListName('')
       setError('')
     } catch (err) {
@@ -181,6 +252,17 @@ export default function ListsPage() {
   }
 
   const deleteList = async (listId: string) => {
+    if (!isOnline) {
+      // Офлайн режим: удаляем локально и добавляем в очередь
+      setShoppingLists(shoppingLists.filter(list => list.id !== listId))
+      await deleteOfflineList(listId)
+      await enqueueOperation('DELETE', `/api/shopping-lists/${listId}`, 'DELETE')
+      if (expandedListId === listId) setExpandedListId(null)
+      setError('Список удален офлайн. Синхронизация при подключении к сети.')
+      return
+    }
+
+    // Онлайн режим
     try {
       const token = localStorage.getItem('token')
       const response = await fetch(`/api/shopping-lists/${listId}`, {
@@ -194,6 +276,7 @@ export default function ListsPage() {
       }
 
       setShoppingLists(shoppingLists.filter(list => list.id !== listId))
+      await deleteOfflineList(listId)
       if (expandedListId === listId) setExpandedListId(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при удалении списка')
@@ -201,7 +284,7 @@ export default function ListsPage() {
   }
 
   // Items operations
-  const addItem = async (listId: string, itemName: string, productId?: string) => {
+  const addItem = async (listId: string, itemName: string, productId?: string, categoryId?: string) => {
     if (!itemName?.trim()) return
 
     const list = shoppingLists.find(l => l.id === listId)
@@ -215,6 +298,45 @@ export default function ListsPage() {
       }
     }
 
+    const tempItemId = `temp-${Date.now()}`
+    const trimmedName = itemName.trim()
+
+    if (!isOnline) {
+      // Офлайн режим
+      const tempItem = {
+        id: tempItemId,
+        name: trimmedName,
+        quantity: 1,
+        purchased: false
+      }
+
+      setShoppingLists(lists =>
+        lists.map(list =>
+          list.id === listId
+            ? { ...list, items: [...list.items, tempItem] }
+            : list
+        )
+      )
+
+      // Обновляем в IndexedDB
+      const updatedList = shoppingLists.find(l => l.id === listId)
+      if (updatedList) {
+        await saveOfflineList({ ...updatedList, items: [...updatedList.items, tempItem] })
+      }
+
+      await enqueueOperation('CREATE', `/api/shopping-lists/${listId}/items`, 'POST', {
+        name: trimmedName,
+        quantity: 1,
+        productId: productId || null,
+        categoryId: categoryId || null
+      })
+
+      setNewItemNames({ ...newItemNames, [listId]: '' })
+      setError('Товар добавлен офлайн. Синхронизация при подключении к сети.')
+      return
+    }
+
+    // Онлайн режим
     try {
       const token = localStorage.getItem('token')
       const response = await fetch(`/api/shopping-lists/${listId}/items`, {
@@ -224,9 +346,10 @@ export default function ListsPage() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: itemName.trim(),
+          name: trimmedName,
           quantity: 1,
-          productId: productId || null
+          productId: productId || null,
+          categoryId: categoryId || null
         }),
       })
 
@@ -241,6 +364,12 @@ export default function ListsPage() {
         )
       )
 
+      // Сохраняем обновленный список в IndexedDB
+      const updatedList = shoppingLists.find(l => l.id === listId)
+      if (updatedList) {
+        await saveOfflineList({ ...updatedList, items: [...updatedList.items, data.item] })
+      }
+
       setNewItemNames({ ...newItemNames, [listId]: '' })
       setError('')
     } catch (err) {
@@ -248,7 +377,7 @@ export default function ListsPage() {
     }
   }
 
-  const addProductFromCatalog = (product: Product, quantity: number) => {
+  const addProductFromCatalog = (product: Product, _quantity: number) => {
     if (!expandedListId) {
       setError('Откройте список, чтобы добавлять товары')
       return
@@ -257,6 +386,45 @@ export default function ListsPage() {
   }
 
   const toggleItem = async (listId: string, itemId: string) => {
+    // Находим товар и переключаем его статус локально
+    const list = shoppingLists.find(l => l.id === listId)
+    const item = list?.items.find(i => i.id === itemId)
+
+    if (!item) return
+
+    const updatedItem = { ...item, purchased: !item.purchased }
+
+    // Обновляем UI сразу для отзывчивости
+    setShoppingLists(lists =>
+      lists.map(list =>
+        list.id === listId
+          ? {
+              ...list,
+              items: list.items.map(item =>
+                item.id === itemId ? updatedItem : item
+              ),
+            }
+          : list
+      )
+    )
+
+    if (!isOnline) {
+      // Офлайн режим: сохраняем локально и добавляем в очередь
+      const updatedList = shoppingLists.find(l => l.id === listId)
+      if (updatedList) {
+        const listWithUpdatedItem = {
+          ...updatedList,
+          items: updatedList.items.map(i => i.id === itemId ? updatedItem : i)
+        }
+        await saveOfflineList(listWithUpdatedItem)
+      }
+
+      await enqueueOperation('UPDATE', `/api/items/${itemId}/toggle`, 'PATCH')
+      setError('Статус изменен офлайн. Синхронизация при подключении к сети.')
+      return
+    }
+
+    // Онлайн режим
     try {
       const token = localStorage.getItem('token')
       const response = await fetch(`/api/items/${itemId}/toggle`, {
@@ -279,12 +447,46 @@ export default function ListsPage() {
             : list
         )
       )
+
+      // Сохраняем в IndexedDB
+      const updatedList = shoppingLists.find(l => l.id === listId)
+      if (updatedList) {
+        const listWithUpdatedItem = {
+          ...updatedList,
+          items: updatedList.items.map(i => i.id === itemId ? data.item : i)
+        }
+        await saveOfflineList(listWithUpdatedItem)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при обновлении товара')
     }
   }
 
   const deleteItem = async (listId: string, itemId: string) => {
+    if (!isOnline) {
+      // Офлайн режим
+      setShoppingLists(lists =>
+        lists.map(list =>
+          list.id === listId
+            ? { ...list, items: list.items.filter(item => item.id !== itemId) }
+            : list
+        )
+      )
+
+      const updatedList = shoppingLists.find(l => l.id === listId)
+      if (updatedList) {
+        await saveOfflineList({
+          ...updatedList,
+          items: updatedList.items.filter(i => i.id !== itemId)
+        })
+      }
+
+      await enqueueOperation('DELETE', `/api/items/${itemId}`, 'DELETE')
+      setError('Товар удален офлайн. Синхронизация при подключении к сети.')
+      return
+    }
+
+    // Онлайн режим
     try {
       const token = localStorage.getItem('token')
       const response = await fetch(`/api/items/${itemId}`, {
@@ -453,6 +655,9 @@ export default function ListsPage() {
                 onItemNameChange={(id, name) =>
                   setNewItemNames({ ...newItemNames, [id]: name })
                 }
+                categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                onCategoryChange={setSelectedCategoryId}
               />
             ))
           )}

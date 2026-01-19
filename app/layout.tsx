@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ServiceWorkerProvider } from "./components/ServiceWorkerProvider";
+import { OfflineIndicator } from "./components/OfflineIndicator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +56,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <OfflineIndicator />
         <ServiceWorkerProvider />
         <ThemeProvider>
           <AuthProvider>

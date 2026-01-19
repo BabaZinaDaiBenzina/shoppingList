@@ -16,7 +16,7 @@ export async function POST(
 
     const { id: listId } = await params
     const body = await request.json()
-    const { name, quantity = 1, productId } = body
+    const { name, quantity = 1, productId, categoryId } = body
 
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
@@ -35,12 +35,40 @@ export async function POST(
       )
     }
 
+    let finalProductId = productId
+
+    // Если передана категория, но не передан productId, создаём продукт или ищем существующий
+    if (categoryId && !productId) {
+      // Проверяем, существует ли продукт с таким именем в этой категории
+      const existingProduct = await prisma.product.findUnique({
+        where: {
+          categoryId_name: {
+            categoryId,
+            name: name.trim()
+          }
+        }
+      })
+
+      if (existingProduct) {
+        finalProductId = existingProduct.id
+      } else {
+        // Создаём новый продукт
+        const newProduct = await prisma.product.create({
+          data: {
+            name: name.trim(),
+            categoryId,
+          }
+        })
+        finalProductId = newProduct.id
+      }
+    }
+
     const item = await prisma.item.create({
       data: {
         name: name.trim(),
         quantity: Math.max(1, quantity),
         listId,
-        productId: productId || null,
+        productId: finalProductId || null,
       },
       include: {
         product: {
