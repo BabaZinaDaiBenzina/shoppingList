@@ -1,7 +1,7 @@
 // IndexedDB сервис для офлайн хранения данных
 
 const DB_NAME = 'ShoppingListDB'
-const DB_VERSION = 1
+const DB_VERSION = 2  // Увеличена версия для миграции
 
 // Хранилища (stores)
 const STORES = {
@@ -147,6 +147,11 @@ class IndexedDBService {
     return this.delete(STORES.QUEUE, id)
   }
 
+  async updateQueueOperation(operation: QueueOperation): Promise<void> {
+    if (!this.db) await this.init()
+    return this.put(STORES.QUEUE, operation)
+  }
+
   async clearQueue(): Promise<void> {
     if (!this.db) await this.init()
     return this.clear(STORES.QUEUE)
@@ -197,6 +202,19 @@ class IndexedDBService {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
+
+      // Проверяем, что у данных есть ключевой путь
+      if (!data || typeof data !== 'object') {
+        reject(new Error(`Invalid data for store ${storeName}: data is not an object`))
+        return
+      }
+
+      const keyPath = store.keyPath
+      if (keyPath && !data[keyPath as string]) {
+        reject(new Error(`Missing key path "${keyPath}" in data for store ${storeName}`))
+        return
+      }
+
       const request = store.put(data)
 
       request.onsuccess = () => resolve()
@@ -234,6 +252,29 @@ class IndexedDBService {
     await this.clear(STORES.ITEMS)
     await this.clear(STORES.QUEUE)
     await this.clear(STORES.USER)
+  }
+
+  // Сбросить базу данных (удалить и создать заново) - для решения проблем с миграцией
+  async reset(): Promise<void> {
+    if (typeof window === 'undefined') {
+      throw new Error('IndexedDB доступен только в браузере')
+    }
+
+    // Закрываем текущее подключение
+    if (this.db) {
+      this.db.close()
+      this.db = null
+    }
+
+    // Удаляем базу данных
+    await new Promise<void>((resolve, reject) => {
+      const request = window.indexedDB.deleteDatabase(DB_NAME)
+      request.onsuccess = () => resolve()
+      request.onerror = () => reject(request.error)
+    })
+
+    // Инициализируем заново
+    await this.init()
   }
 }
 

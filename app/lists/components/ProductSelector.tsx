@@ -108,10 +108,10 @@ export function ProductSelector({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white dark:bg-zinc-800 w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 z-50 flex sm:items-center justify-center">
+      <div className="bg-white dark:bg-zinc-800 w-full sm:max-w-2xl sm:rounded-2xl fixed bottom-0 sm:relative sm:max-h-[90vh] h-[85vh] sm:h-auto rounded-t-2xl overflow-hidden flex flex-col">
         {/* Заголовок */}
-        <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700 shrink-0">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
               🛒 Каталог продуктов
@@ -172,7 +172,7 @@ export function ProductSelector({
         </div>
 
         {/* Список продуктов */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 min-h-0">
           {!hasOpenList ? (
             <div className="text-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
               <p className="text-yellow-800 dark:text-yellow-200">⚠️ Откройте список, чтобы добавлять товары</p>

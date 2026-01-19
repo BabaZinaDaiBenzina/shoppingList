@@ -53,10 +53,21 @@ class SyncService {
       console.log(`📦 Операций в очереди: ${operations.length}`)
 
       for (const operation of operations) {
+        // Проверяем, что операция все еще в очереди (могла быть выполнена параллельно)
+        const currentQueue = await indexedDB.getQueue()
+        const stillInQueue = currentQueue.find(op => op.id === operation.id)
+
+        if (!stillInQueue) {
+          console.log(`⏭️ Операция уже выполнена параллельно: ${operation.endpoint}`)
+          continue
+        }
+
         // Пропускаем если операция уже выполняется
         if (this.syncInProgress.has(operation.id)) {
           continue
         }
+
+        this.syncInProgress.add(operation.id)
 
         try {
           await this.syncOperation(operation)
@@ -73,9 +84,9 @@ class SyncService {
             console.warn(`⚠️ Операция удалена после 3 попыток: ${operation.endpoint}`)
             await indexedDB.removeFromQueue(operation.id)
           } else {
-            // Обновляем операцию в очереди
-            await indexedDB.addToQueue(operation)
-            await indexedDB.removeFromQueue(operation.id)
+            // Обновляем операцию в очереди с новым retryCount
+            await indexedDB.updateQueueOperation(operation)
+            console.log(`🔄 Операция будет повторена (попытка ${operation.retryCount}/3): ${operation.endpoint}`)
           }
         } finally {
           this.syncInProgress.delete(operation.id)
@@ -122,26 +133,32 @@ class SyncService {
     // Обновляем локальные данные после успешной синхронизации
     const result = await response.json()
 
-    // Если это создание/обновление списка, обновляем в IndexedDB
-    if (operation.endpoint.includes('/shopping-lists')) {
-      if (operation.type === 'CREATE' || operation.type === 'UPDATE') {
-        await indexedDB.saveShoppingList(result.shoppingList || result.list)
-      } else if (operation.type === 'DELETE') {
-        const listId = operation.endpoint.split('/').pop()
-        if (listId) {
-          await indexedDB.deleteShoppingList(listId)
-        }
-      }
-    }
-
-    // Если это операции с товарами
-    if (operation.endpoint.includes('/items/')) {
-      if (result.item) {
+    // Если это операции с товарами (создание, обновление, удаление, toggle)
+    if (operation.endpoint.match(/\/shopping-lists\/[^/]+\/items/) || operation.endpoint.match(/\/items\/[^/]+/)) {
+      // При создании товара возвращаем обновленный список
+      if (operation.endpoint.includes('/items') && result.shoppingList) {
+        await indexedDB.saveShoppingList(result.shoppingList)
+      } else if (result.item) {
         await indexedDB.saveItem(result.item)
       } else if (result.items) {
         // Массовое обновление (например, deselect-all)
         for (const item of result.items) {
           await indexedDB.saveItem(item)
+        }
+      }
+    }
+    // Если это создание/обновление/удаление списка
+    else if (operation.endpoint.match(/\/shopping-lists\/?$/) && !operation.endpoint.includes('/items')) {
+      if (operation.type === 'CREATE' || operation.type === 'UPDATE') {
+        if (result.shoppingList) {
+          await indexedDB.saveShoppingList(result.shoppingList)
+        } else if (result.list) {
+          await indexedDB.saveShoppingList(result.list)
+        }
+      } else if (operation.type === 'DELETE') {
+        const listId = operation.endpoint.split('/').pop()
+        if (listId) {
+          await indexedDB.deleteShoppingList(listId)
         }
       }
     }

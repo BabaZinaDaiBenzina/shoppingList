@@ -279,30 +279,39 @@ export function GroupedShoppingListCard({
             />
 
             {/* Селектор категорий */}
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => onCategoryChange(null)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedCategoryId === null
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
-                }`}
-              >
-                Без категории
-              </button>
-              {categories.map((category) => (
+            <div className="max-h-[125px] overflow-y-auto -mx-2 px-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
-                  key={category.id}
-                  onClick={() => onCategoryChange(category.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedCategoryId === category.id
+                  onClick={() => onCategoryChange(null)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-center ${
+                    selectedCategoryId === null
                       ? 'bg-blue-600 text-white'
                       : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
                   }`}
                 >
-                  {category.icon} {category.name}
+                  Без категории
                 </button>
-              ))}
+                {categories.map((category) => {
+                  const displayName = category.name.length > 8
+                    ? category.name.slice(0, 3) + '...'
+                    : category.name
+
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => onCategoryChange(category.id)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-center truncate ${
+                        selectedCategoryId === category.id
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                      }`}
+                      title={category.name}
+                    >
+                      {category.icon} {displayName}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <button

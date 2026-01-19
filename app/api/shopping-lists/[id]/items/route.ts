@@ -79,7 +79,30 @@ export async function POST(
       }
     })
 
-    return NextResponse.json({ item }, { status: 201 })
+    // Получаем обновленный список
+    const shoppingList = await prisma.shoppingList.findUnique({
+      where: { id: listId },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            name: true
+          }
+        }
+      }
+    })
+
+    return NextResponse.json({ item, shoppingList }, { status: 201 })
 
   } catch (error) {
     console.error('Create item error:', error)
