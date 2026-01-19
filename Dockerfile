@@ -1,5 +1,9 @@
 FROM node:20-alpine
 
+  # Accept build arguments
+  ARG JWT_SECRET
+  ENV JWT_SECRET=${JWT_SECRET}
+
   RUN apk add --no-cache python3 make g++ postgresql-client
 
   WORKDIR /app

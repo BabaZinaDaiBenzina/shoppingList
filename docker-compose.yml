@@ -25,6 +25,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        JWT_SECRET: ${JWT_SECRET}
     container_name: shoppinglist-app
     restart: unless-stopped
     ports:
