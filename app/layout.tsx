@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { Providers } from "@/components/Providers";
 import { ServiceWorkerProvider } from "./components/ServiceWorkerProvider";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 
@@ -58,11 +57,9 @@ export default function RootLayout({
       >
         <OfflineIndicator />
         <ServiceWorkerProvider />
-        <ThemeProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </ThemeProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

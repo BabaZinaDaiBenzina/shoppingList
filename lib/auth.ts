@@ -1,42 +1,72 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
-// Валидация JWT_SECRET при старте приложения
-const _JWT_SECRET = process.env.JWT_SECRET
+/**
+ * Получает JWT_SECRET с валидацией в runtime
+ *
+ * Валидация происходит при первом вызове функции, а не при импорте модуля.
+ * Это позволяет корректно работать в средах где переменные окружения
+ * недоступны во время сборки (например, Docker build).
+ */
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
 
-if (!_JWT_SECRET) {
-  throw new Error(
-    'FATAL ERROR: JWT_SECRET is not defined in environment variables. ' +
-    'Please set JWT_SECRET in your .env file with a secure random string (min 32 characters).'
-  )
+  if (!secret) {
+    throw new Error(
+      'FATAL ERROR: JWT_SECRET is not defined in environment variables. ' +
+      'Please set JWT_SECRET in your .env file with a secure random string (min 32 characters).'
+    )
+  }
+
+  if (secret.length < 32) {
+    throw new Error(
+      'FATAL ERROR: JWT_SECRET must be at least 32 characters long for security. ' +
+      'Current length: ' + secret.length + ' characters.'
+    )
+  }
+
+  return secret
 }
 
-if (_JWT_SECRET.length < 32) {
-  throw new Error(
-    'FATAL ERROR: JWT_SECRET must be at least 32 characters long for security. ' +
-    'Current length: ' + _JWT_SECRET.length + ' characters.'
-  )
-}
-
-// TypeScript теперь понимает, что это string (не undefined)
-const JWT_SECRET = _JWT_SECRET as string
-
+/**
+ * Хеширует пароль с использованием bcrypt
+ * @param password - пароль в открытом виде
+ * @returns захешированный пароль
+ */
 export async function hashPassword(password: string): Promise<string> {
   // Увеличили с 10 до 12 для лучшей безопасности
   return bcrypt.hash(password, 12)
 }
 
+/**
+ * Проверяет пароль против захешированной версии
+ * @param password - пароль в открытом виде
+ * @param hashedPassword - захешированный пароль
+ * @returns true если пароли совпадают
+ */
 export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword)
 }
 
+/**
+ * Генерирует JWT токен для пользователя
+ * @param userId - ID пользователя
+ * @returns JWT токен
+ */
 export function generateToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' })
+  const secret = getJwtSecret()
+  return jwt.sign({ userId }, secret, { expiresIn: '7d' })
 }
 
+/**
+ * Проверяет JWT токен
+ * @param token - JWT токен
+ * @returns данные пользователя или null если токен невалидный
+ */
 export function verifyToken(token: string): { userId: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string }
+    const secret = getJwtSecret()
+    return jwt.verify(token, secret) as { userId: string }
   } catch {
     return null
   }

@@ -70,26 +70,27 @@ model User {
 ### 4. Обработка ошибок
 
 **Error Boundaries**
-- [ ] Создать компонент ErrorBoundary
-- [ ] Добавить на уровне всех маршрутов
+- [x] Создать компонент ErrorBoundary ✅
+- [x] Добавить на уровне всех маршрутов ✅
 
 **Структурированные ошибки**
-- [ ] Создать типы ошибок с кодами
-- [ ] Вернуть информативные сообщения вместо generic errors
-- [ ] Логировать ошибки без конфиденциальных данных
+- [x] Создать типы ошибок с кодами ✅
+- [x] Вернуть информативные сообщения вместо generic errors ✅
+- [x] Логировать ошибки без конфиденциальных данных ✅
 
 **Отмена запросов**
-- [ ] Использовать AbortController во всех fetch
+- [x] Использовать AbortController в syncService ✅
+- [ ] Использовать AbortController во всех остальных fetch
 - [ ] Отменять запросы при размонтировании компонентов
 
 ### 5. Офлайн/Синхронизация
 
 **Race Conditions**
-- [ ] Добавить mutex/locking для sync операций
-- [ ] Файл: `lib/services/syncService.ts:55-63`
+- [x] Добавить mutex/locking для sync операций ✅
+- [x] Файл: `lib/services/syncService.ts:55-63` ✅
 
 **Разрешение конфликтов**
-- [ ] Реализовать last-write-wins с timestamp
+- [x] Реализовать last-write-wins с timestamp ✅
 - [ ] Или operational transformation для сложных случаев
 
 **Визуальные индикаторы синхронизации**
@@ -386,8 +387,8 @@ model User {
 1. ✅ ~~🔒 Исправить JWT секрет валидацию~~ ВЫПОЛНЕНО
 2. ✅ ~~🛡️ Добавить rate limiting~~ ВЫПОЛНЕНО
 3. ~~🔐 CSRF защита~~ (частично: SameSite=strict)
-4. ~~🚨 Error boundaries~~ (будет реализовано позже)
-5. ~~🔄 Fix race conditions в sync~~ (будет реализовано позже)
+4. ✅ ~~🚨 Error boundaries~~ ВЫПОЛНЕНО
+5. ✅ ~~🔄 Fix race conditions в sync~~ ВЫПОЛНЕНО
 6. ~~✔️ Zod валидация~~ (будет реализовано позже)
 7. ✅ ~~🔑 Увеличить bcrypt до 12 rounds~~ ВЫПОЛНЕНО
 8. ✅ ~~🍪 Secure cookie-based auth~~ ВЫПОЛНЕНО
@@ -432,15 +433,17 @@ model User {
 ## 🎯 QUICK WINS (Менее 4 часов каждое)
 
 1. ~~Zod валидация для API routes~~ (будет реализовано позже)
-2. ~~Error boundaries для routes~~ (будет реализовано позже)
+2. ✅ **Error boundaries для routes** - ВЫПОЛНЕНО
 3. ~~Индексы в базе данных~~ (будет реализовано позже)
 4. ✅ **Bcrypt rounds 10→12** - ВЫПОЛНЕНО
 5. ~~Loading states для мутаций~~ (уже есть частично)
 6. ~~Confirmation dialogs~~ (частично реализовано)
 7. ✅ **Secure cookie-based auth** - ВЫПОЛНЕНО
 8. ✅ **Rate limiting для login** - ВЫПОЛНЕНО
-9. ~~Fix race condition в sync service~~ (будет реализовано позже)
+9. ✅ **Fix race condition в sync service** - ВЫПОЛНЕНО
 10. ✅ **Environment variable validation** - ВЫПОЛНЕНО (JWT_SECRET)
+11. ✅ **Структурированные ошибки с кодами** - ВЫПОЛНЕНО
+12. ✅ **Логирование с санитайзингом** - ВЫПОЛНЕНО
 
 ---
 
@@ -448,8 +451,8 @@ model User {
 
 **Высокий уровень техдолга:**
 1. ✅ ~~🔴 Система аутентификации (небезопасные localStorage токены)~~ ✅ ИСПРАВЛЕНО
-2. 🔴 Sync service (race conditions, нет resolution конфликтов)
-3. 🔴 Error handling (нестабильный, generic)
+2. ✅ ~~🔴 Sync service (race conditions, нет resolution конфликтов)~~ ✅ ИСПРАВЛЕНО
+3. ✅ ~~🔴 Error handling (нестабильный, generic)~~ ✅ УЛУЧШЕНО
 4. 🔴 Type definitions (дублированные, не из Prisma)
 5. 🔴 Database schema (нет индексов, constraints)
 6. 🔴 Тестирование (0% покрытие)
@@ -478,6 +481,64 @@ model User {
 ---
 
 ## 🎉 ВЫПОЛНЕННЫЕ УЛУЧШЕНИЯ (Дата: 2026-01-19)
+
+### ✅ Офлайн синхронизация (5 критических улучшений)
+
+1. **Mutex для синхронизации** - `lib/utils/mutex.ts` (новый)
+   - ✅ Mutex класс для предотвращения параллельных операций
+   - ✅ AsyncLock для блокировки по ресурсам (списки, товары)
+   - ✅ Semaphore для ограничения параллельных операций
+   - ✅ Полная защита от race conditions
+
+2. **Race Condition Fixes** - `lib/services/syncService.ts`
+   - ✅ Глобальный мьютекс для предотвращения параллельной синхронизации
+   - ✅ Блокировки по ресурсам для предотвращения конфликтов
+   - ✅ Атомарные операции с очередью
+   - ✅ Проверка состояния перед выполнением операций
+
+3. **Разрешение конфликтов** - `lib/services/syncService.ts`
+   - ✅ Last-write-wins с timestamp
+   - ✅ Пропуск устаревших UPDATE операций
+   - ✅ Группировка операций по ресурсам
+   - ✅ Последовательная обработка конфликтующих операций
+
+4. **Exponential Backoff Retry** - `lib/services/syncService.ts`
+   - ✅ Экспоненциальная задержка (1с, 2с, 4с, макс 10с)
+   - ✅ Jitter для предотвращения thundering herd
+   - ✅ Максимум 3 попытки с таймаутом 30 секунд
+   - ✅ AbortController для отмены зависших запросов
+
+5. **Улучшенное логирование** - `lib/services/syncService.ts`
+   - ✅ Структурированные логи с контекстом
+   - ✅ Статистика синхронизации (успех/ошибки/конфликты)
+   - ✅ Логирование каждой операции с деталями
+   - ✅ Метод getStats() для мониторинга
+
+### ✅ Обработка ошибок (3 критических улучшения)
+
+1. **Error Boundaries** - `components/ErrorBoundary.tsx` (новый)
+   - ✅ React Error Boundary компонент для клиентских компонентов
+   - ✅ Fallback UI с кнопками "Попробовать снова" и "На главную"
+   - ✅ Технические детали в development режиме
+   - ✅ Интеграция с Providers для глобального перехвата ошибок
+
+2. **Структурированные ошибки** - `types/errors.ts` (новый)
+   - ✅ Базовый класс ApplicationError с кодами ошибок
+   - ✅ 15 специализированных классов ошибок (NetworkError, AuthError, ValidationError, etc.)
+   - ✅ Пользовательские сообщения для каждого типа ошибок
+   - ✅ Type guards и безопасное логирование
+
+3. **Система логирования** - `lib/logger.ts` (новый)
+   - ✅ Уровни логирования (debug, info, warn, error)
+   - ✅ Санитайзинг конфиденциальных данных (пароли, токены)
+   - ✅ Структурированные логи с контекстом
+   - ✅ Подготовка для интеграции с Winston/Pino
+
+4. **Next.js Error Handling** - `app/error.tsx`, `app/lists/error.tsx` (новые)
+   - ✅ Глобальный error.tsx для корневого уровня
+   - ✅ error.tsx для маршрута списков
+   - ✅ Автоматическое логирование ошибок
+   - ✅ Пользовательский UI для каждой секции
 
 ### ✅ Безопасность (6 критических улучшений)
 
@@ -512,6 +573,24 @@ model User {
 
 ### 📁 Изменённые файлы
 
+**Офлайн синхронизация:**
+```
+✅ lib/utils/mutex.ts (новый)
+✅ lib/services/syncService.ts (полностью переписан)
+```
+
+**Обработка ошибок:**
+```
+✅ types/errors.ts (новый)
+✅ lib/logger.ts (новый)
+✅ components/ErrorBoundary.tsx (новый)
+✅ components/Providers.tsx (новый)
+✅ app/error.tsx (новый)
+✅ app/lists/error.tsx (новый)
+✅ app/layout.tsx (обновлен)
+```
+
+**Безопасность:**
 ```
 ✅ lib/auth.ts
 ✅ lib/middleware.ts
@@ -535,6 +614,13 @@ model User {
 
 | Метрика | До | После |
 |---------|-----|-------|
+| **Race Conditions** | ❌ Критические проблемы | ✅ Полная защита (Mutex + AsyncLock) |
+| **Разрешение конфликтов** | ❌ Не реализовано | ✅ Last-write-wins с timestamp |
+| **Retry механизм** | ⚠️ Простой (3 попытки) | ✅ Exponential backoff + jitter |
+| **Отмена запросов** | ❌ Не реализовано | ✅ AbortController (30 сек) |
+| **Error Handling** | ❌ Generic ошибки | ✅ Структурированные ошибки с кодами |
+| **Error Boundaries** | ❌ Не реализованы | ✅ Error Boundaries на всех уровнях |
+| **Логирование** | ❌ console.error | ✅ Санитайзинг, уровни, контекст |
 | XSS защита | ❌ Токены в localStorage | ✅ httpOnly cookies |
 | Brute force | ❌ Нет защиты | ✅ Rate limiting |
 | Password hashing | ⚠️ 10 rounds | ✅ 12 rounds |
