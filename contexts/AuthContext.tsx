@@ -155,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     token,
     isLoading,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user, // Достаточно проверки user (токен в httpOnly cookie)
     login,
     register,
     logout,

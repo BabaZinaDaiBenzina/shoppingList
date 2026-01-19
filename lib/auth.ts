@@ -93,8 +93,6 @@ export function getAuthCookieOptions(): {
     maxAge: number
   }
 } {
-  const isProduction = process.env.NODE_ENV === 'production'
-
   return {
     name: AUTH_COOKIE_NAME,
     options: {
