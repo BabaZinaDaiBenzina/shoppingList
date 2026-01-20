@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { hashPassword, generateToken, setAuthCookie } from '@/lib/auth'
+import { hashPassword, generateAccessToken, generateRefreshToken, setAccessTokenCookie, setRefreshTokenCookie } from '@/lib/auth'
 import { rateLimitMiddleware, rateLimits } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
@@ -82,17 +82,30 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Генерация токена
-    const token = generateToken(user.id)
+    // Генерация токенов
+    const accessToken = generateAccessToken(user.id)
+    const refreshToken = generateRefreshToken()
 
-    // Устанавливаем httpOnly cookie с токеном
+    // Сохраняем refresh токен в базу данных
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 30) // 30 дней
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt,
+      }
+    })
+
+    // Создаем ответ
     const response = NextResponse.json({
       user,
-      // Токен больше не возвращается в теле ответа для безопасности
     }, { status: 201 })
 
-    // Устанавливаем cookie
-    response.headers.set('Set-Cookie', setAuthCookie(token))
+    // Устанавливаем httpOnly cookies с токенами
+    response.headers.append('Set-Cookie', setAccessTokenCookie(accessToken))
+    response.headers.append('Set-Cookie', setRefreshTokenCookie(refreshToken))
 
     return response
 

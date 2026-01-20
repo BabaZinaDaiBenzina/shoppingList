@@ -29,9 +29,13 @@ export interface AuthContextType {
   user: User | null
   token: string | null
   isLoading: boolean
+  isRefreshing?: boolean
   isAuthenticated: boolean
   login: (credentials: LoginCredentials) => Promise<void>
   register: (credentials: RegisterCredentials) => Promise<void>
   logout: () => Promise<void>
+  logoutAll?: () => Promise<void>
   refreshUser: () => Promise<void>
+  refreshTokens?: () => Promise<boolean>
+  fetchWithAuth?: (url: string, options?: RequestInit) => Promise<Response>
 }

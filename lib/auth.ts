@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { randomBytes } from 'crypto'
 
 /**
  * Получает JWT_SECRET с валидацией в runtime
@@ -49,41 +50,93 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 /**
- * Генерирует JWT токен для пользователя
- * @param userId - ID пользователя
- * @returns JWT токен
+ * Константы для токенов
  */
-export function generateToken(userId: string): string {
-  const secret = getJwtSecret()
-  return jwt.sign({ userId }, secret, { expiresIn: '7d' })
+export const TOKEN_EXPIRY = {
+  ACCESS: '15m' as const, // 15 минут для access токена
+  REFRESH: 30 * 24 * 60 * 60, // 30 дней для refresh токена в секундах
 }
 
 /**
- * Проверяет JWT токен
+ * Генерирует JWT access токен для пользователя
+ * @param userId - ID пользователя
+ * @returns JWT access токен
+ */
+export function generateAccessToken(userId: string): string {
+  const secret = getJwtSecret()
+  return jwt.sign({ userId, type: 'access' }, secret, { expiresIn: TOKEN_EXPIRY.ACCESS })
+}
+
+/**
+ * Генерирует refresh токен
+ * @returns безопасная случайная строка для refresh токена
+ */
+export function generateRefreshToken(): string {
+  return randomBytes(32).toString('hex')
+}
+
+/**
+ * Проверяет JWT access токен
  * @param token - JWT токен
  * @returns данные пользователя или null если токен невалидный
  */
-export function verifyToken(token: string): { userId: string } | null {
+export function verifyAccessToken(token: string): { userId: string } | null {
   try {
     const secret = getJwtSecret()
-    return jwt.verify(token, secret) as { userId: string }
+    const decoded = jwt.verify(token, secret) as { userId: string; type?: string }
+
+    // Проверяем, что это access токен
+    if (decoded.type !== 'access') {
+      return null
+    }
+
+    return { userId: decoded.userId }
   } catch {
     return null
   }
 }
 
 /**
- * Настройки httpOnly cookie для токена авторизации
- *
- * httpOnly - защита от XSS (токен недоступен из JavaScript)
- * secure - передача только по HTTPS
- * sameSite=strict - защита от CSRF
- * path=/ - доступен на всех страницах
- * maxAge=7d - время жизни токена
+ * Извлекает userId из токена (без проверки типа)
+ * Используется для совместимости с middleware
+ * @param token - JWT токен
+ * @returns данные пользователя или null если токен невалидный
  */
-export const AUTH_COOKIE_NAME = 'auth_token'
+export function verifyToken(token: string): { userId: string } | null {
+  return verifyAccessToken(token)
+}
 
-export function getAuthCookieOptions(): {
+/**
+ * Проверяет срок действия access токена
+ * @param token - JWT токен
+ * @returns true если токен истек или скоро истечет (в течение 1 минуты)
+ */
+export function isTokenExpiringSoon(token: string): boolean {
+  try {
+    const secret = getJwtSecret()
+    const decoded = jwt.verify(token, secret) as { userId: string; exp: number }
+
+    if (!decoded.exp) {
+      return true
+    }
+
+    // Проверяем, истекает ли токен в течение 1 минуты
+    const expiryTime = decoded.exp * 1000 // Конвертируем в миллисекунды
+    const oneMinuteFromNow = Date.now() + 60 * 1000
+
+    return expiryTime <= oneMinuteFromNow
+  } catch {
+    return true // Если не можем декодировать, считаем что токен истек
+  }
+}
+
+/**
+ * Настройки httpOnly cookie
+ */
+export const ACCESS_TOKEN_COOKIE = 'access_token'
+export const REFRESH_TOKEN_COOKIE = 'refresh_token'
+
+export function getAccessTokenCookieOptions(): {
   name: string
   options: {
     httpOnly: boolean
@@ -94,26 +147,46 @@ export function getAuthCookieOptions(): {
   }
 } {
   return {
-    name: AUTH_COOKIE_NAME,
+    name: ACCESS_TOKEN_COOKIE,
     options: {
       httpOnly: true, // Токен недоступен из JavaScript (защита от XSS)
       secure: false, // Временно отключено для отладки (включить true после настройки HTTPS)
       sameSite: 'strict', // Защита от CSRF
       path: '/', // Доступен на всех страницах
-      maxAge: 7 * 24 * 60 * 60, // 7 дней в секундах
+      maxAge: 15 * 60, // 15 минут в секундах
+    }
+  }
+}
+
+export function getRefreshTokenCookieOptions(): {
+  name: string
+  options: {
+    httpOnly: boolean
+    secure: boolean
+    sameSite: 'strict' | 'lax' | 'none'
+    path: string
+    maxAge: number
+  }
+} {
+  return {
+    name: REFRESH_TOKEN_COOKIE,
+    options: {
+      httpOnly: true, // Токен недоступен из JavaScript (защита от XSS)
+      secure: false, // Временно отключено для отладки (включить true после настройки HTTPS)
+      sameSite: 'strict', // Защита от CSRF
+      path: '/', // Доступен на всех страницах
+      maxAge: TOKEN_EXPIRY.REFRESH, // 30 дней
     }
   }
 }
 
 /**
- * Создаёт response с установленным auth cookie
+ * Создаёт cookie строку для access токена
  */
-export function setAuthCookie(token: string): string {
-  const { name, options } = getAuthCookieOptions()
-
+export function setAccessTokenCookie(token: string): string {
+  const { name, options } = getAccessTokenCookieOptions()
   const cookieValue = `${name}=${token}; Path=${options.path}; HttpOnly; SameSite=${options.sameSite}`
 
-  // Добавляем secure только в production (HTTPS)
   if (options.secure) {
     return `${cookieValue}; Secure; Max-Age=${options.maxAge}`
   }
@@ -122,8 +195,40 @@ export function setAuthCookie(token: string): string {
 }
 
 /**
+ * Создаёт cookie строку для refresh токена
+ */
+export function setRefreshTokenCookie(token: string): string {
+  const { name, options } = getRefreshTokenCookieOptions()
+  const cookieValue = `${name}=${token}; Path=${options.path}; HttpOnly; SameSite=${options.sameSite}`
+
+  if (options.secure) {
+    return `${cookieValue}; Secure; Max-Age=${options.maxAge}`
+  }
+
+  return `${cookieValue}; Max-Age=${options.maxAge}`
+}
+
+/**
+ * Очищает оба cookie
+ */
+export function clearAuthCookies(): string[] {
+  const accessClear = `${ACCESS_TOKEN_COOKIE}=; Path=/; HttpOnly; SameSite=strict; Max-Age=0`
+  const refreshClear = `${REFRESH_TOKEN_COOKIE}=; Path=/; HttpOnly; SameSite=strict; Max-Age=0`
+  return [accessClear, refreshClear]
+}
+
+/**
+ * Создаёт response с установленным auth cookie
+ * @deprecated Используйте setAccessTokenCookie и setRefreshTokenCookie отдельно
+ */
+export function setAuthCookie(token: string): string {
+  return setAccessTokenCookie(token)
+}
+
+/**
  * Создаёт response для удаления auth cookie
+ * @deprecated Используйте clearAuthCookies
  */
 export function clearAuthCookie(): string {
-  return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=strict; Max-Age=0`
+  return clearAuthCookies().join(', ')
 }

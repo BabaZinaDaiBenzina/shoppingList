@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { verifyToken, AUTH_COOKIE_NAME } from './auth'
+import { verifyToken, ACCESS_TOKEN_COOKIE } from './auth'
 import { prisma } from './prisma'
 
 /**
@@ -15,13 +15,13 @@ function getTokenFromCookie(request: NextRequest): string | null {
 
   // Парсим cookie
   const cookies = cookie.split(';').map(c => c.trim())
-  const authCookie = cookies.find(c => c.startsWith(`${AUTH_COOKIE_NAME}=`))
+  const accessCookie = cookies.find(c => c.startsWith(`${ACCESS_TOKEN_COOKIE}=`))
 
-  if (!authCookie) {
+  if (!accessCookie) {
     return null
   }
 
-  return authCookie.substring(AUTH_COOKIE_NAME.length + 1) // +1 для '='
+  return accessCookie.substring(ACCESS_TOKEN_COOKIE.length + 1) // +1 для '='
 }
 
 /**
