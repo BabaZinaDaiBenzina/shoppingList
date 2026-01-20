@@ -34,8 +34,16 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/prisma ./prisma
 
+# Create node_modules/.bin directory and add prisma symlink
+RUN mkdir -p ./node_modules/.bin && \
+    ln -sf ../prisma/build/index.js ./node_modules/.bin/prisma && \
+    chmod +x ./node_modules/prisma/build/index.js
+
 # Copy package files for version tracking
 COPY --from=builder /app/package.json ./package.json
+
+# Add node_modules/.bin to PATH
+ENV PATH="./node_modules/.bin:${PATH}"
 
 EXPOSE 3000
 

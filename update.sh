@@ -8,9 +8,9 @@ git pull origin main
 echo "🛑 Stopping containers..."
 docker compose down
 
-# Сборка контейнеров (без --no-cache для использования кэша)
+# Сборка контейнеров (с --no-cache для гарантии обновления зависимостей)
 echo "🚀 Building containers..."
-docker compose build
+docker compose build --no-cache
 
 # Удаление старых неиспользуемых образов для экономии места
 echo "🧹 Cleaning up old images..."
