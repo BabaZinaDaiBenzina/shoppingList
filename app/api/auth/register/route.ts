@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Сохраняем refresh токен в базу данных
     const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 30) // 30 дней
+    expiresAt.setDate(expiresAt.getDate() + 90) // 90 дней (было 30)
 
     await prisma.refreshToken.create({
       data: {

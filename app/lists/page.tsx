@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { GroupedShoppingListCard } from './components/GroupedShoppingListCard'
@@ -70,6 +70,14 @@ export default function ListsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
+  // Loading states для мутаций
+  const [isCreatingList, setIsCreatingList] = useState(false)
+  const [isDeletingList, setIsDeletingList] = useState<Record<string, boolean>>({})
+  const [isAddingItem, setIsAddingItem] = useState<Record<string, boolean>>({})
+  const [isDeletingItem, setIsDeletingItem] = useState<Record<string, boolean>>({})
+  const [isTogglingItem, setIsTogglingItem] = useState<Record<string, boolean>>({})
+  const [isDeselectAll, setIsDeselectAll] = useState<Record<string, boolean>>({})
+
   // Effects
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -78,9 +86,27 @@ export default function ListsPage() {
   }, [authLoading, isAuthenticated, router])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchShoppingLists()
-      fetchCategories()
+    if (!isAuthenticated) return
+
+    const abortController = new AbortController()
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchShoppingLists(abortController.signal),
+          fetchCategories(abortController.signal)
+        ])
+      } catch (error) {
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.error('Error loading data:', error)
+        }
+      }
+    }
+
+    loadData()
+
+    return () => {
+      abortController.abort()
     }
   }, [isAuthenticated])
 
@@ -147,10 +173,10 @@ export default function ListsPage() {
   }, [error])
 
   // API calls
-  const fetchShoppingLists = async () => {
+  const fetchShoppingLists = async (signal?: AbortSignal) => {
     try {
       // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch('/api/shopping-lists')
+      const response = await fetch('/api/shopping-lists', { signal })
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списков')
@@ -162,6 +188,9 @@ export default function ListsPage() {
         await saveOfflineList(list)
       }
     } catch (err) {
+      // Игнорируем AbortError (отмена запроса)
+      if (err instanceof Error && err.name === 'AbortError') return
+
       // Если ошибка сети или офлайн, пробуем загрузить из IndexedDB
       if (isInitialized) {
         const offlineLists = await getOfflineLists()
@@ -179,16 +208,48 @@ export default function ListsPage() {
     }
   }
 
-  const fetchCategories = async () => {
+  // Fetch individual list with items (for expand)
+  const fetchListItems = useCallback(async (listId: string) => {
+    try {
+      const response = await fetch(`/api/shopping-lists/${listId}`)
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списка')
+
+      // Update the list in state with items
+      setShoppingLists(lists =>
+        lists.map(list =>
+          list.id === listId ? data.shoppingList : list
+        )
+      )
+
+      // Save to IndexedDB
+      await saveOfflineList(data.shoppingList)
+    } catch (err) {
+      console.error('Error fetching list items:', err)
+      setError(err instanceof Error ? err.message : 'Ошибка при загрузке товаров')
+    }
+  }, [saveOfflineList])
+
+  // Fetch list items when expanded (lazy loading)
+  useEffect(() => {
+    if (expandedListId) {
+      fetchListItems(expandedListId)
+    }
+  }, [expandedListId, fetchListItems])
+
+  const fetchCategories = async (signal?: AbortSignal) => {
     try {
       // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch('/api/categories')
+      const response = await fetch('/api/categories', { signal })
 
       const data = await response.json()
       if (response.ok) {
         setCategories(data.categories)
       }
     } catch (err) {
+      // Игнорируем AbortError
+      if (err instanceof Error && err.name === 'AbortError') return
       console.error('Ошибка загрузки категорий:', err)
     }
   }
@@ -196,7 +257,9 @@ export default function ListsPage() {
   // Lists operations
   const createList = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newListName.trim()) return
+    if (!newListName.trim() || isCreatingList) return
+
+    setIsCreatingList(true)
 
     // Генерируем временный ID для офлайн режима
     const tempId = `temp-${Date.now()}`
@@ -220,6 +283,7 @@ export default function ListsPage() {
 
       setNewListName('')
       setError('Список создан офлайн. Синхронизация при подключении к сети.')
+      setIsCreatingList(false)
       return
     }
 
@@ -243,10 +307,16 @@ export default function ListsPage() {
       setError('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при создании списка')
+    } finally {
+      setIsCreatingList(false)
     }
   }
 
   const deleteList = async (listId: string) => {
+    if (isDeletingList[listId]) return
+
+    setIsDeletingList(prev => ({ ...prev, [listId]: true }))
+
     if (!isOnline) {
       // Офлайн режим: удаляем локально и добавляем в очередь
       setShoppingLists(shoppingLists.filter(list => list.id !== listId))
@@ -254,6 +324,7 @@ export default function ListsPage() {
       await enqueueOperation('DELETE', `/api/shopping-lists/${listId}`, 'DELETE')
       if (expandedListId === listId) setExpandedListId(null)
       setError('Список удален офлайн. Синхронизация при подключении к сети.')
+      setIsDeletingList(prev => ({ ...prev, [listId]: false }))
       return
     }
 
@@ -274,20 +345,25 @@ export default function ListsPage() {
       if (expandedListId === listId) setExpandedListId(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при удалении списка')
+    } finally {
+      setIsDeletingList(prev => ({ ...prev, [listId]: false }))
     }
   }
 
   // Items operations
   const addItem = async (listId: string, itemName: string, productId?: string, categoryId?: string) => {
-    if (!itemName?.trim()) return
+    if (!itemName?.trim() || isAddingItem[listId]) return
+
+    setIsAddingItem(prev => ({ ...prev, [listId]: true }))
 
     const list = shoppingLists.find(l => l.id === listId)
-    if (list) {
+    if (list && list.items) {
       const exists = list.items.some(
         item => item.name.toLowerCase() === itemName.toLowerCase().trim()
       )
       if (exists) {
         setError(`Товар "${itemName}" уже есть в списке`)
+        setIsAddingItem(prev => ({ ...prev, [listId]: false }))
         return
       }
     }
@@ -307,7 +383,7 @@ export default function ListsPage() {
       setShoppingLists(lists =>
         lists.map(list =>
           list.id === listId
-            ? { ...list, items: [...list.items, tempItem] }
+            ? { ...list, items: [...(list.items || []), tempItem] }
             : list
         )
       )
@@ -315,7 +391,7 @@ export default function ListsPage() {
       // Обновляем в IndexedDB
       const updatedList = shoppingLists.find(l => l.id === listId)
       if (updatedList) {
-        await saveOfflineList({ ...updatedList, items: [...updatedList.items, tempItem] })
+        await saveOfflineList({ ...updatedList, items: [...(updatedList.items || []), tempItem] })
       }
 
       await enqueueOperation('CREATE', `/api/shopping-lists/${listId}/items`, 'POST', {
@@ -327,6 +403,7 @@ export default function ListsPage() {
 
       setNewItemNames({ ...newItemNames, [listId]: '' })
       setError('Товар добавлен офлайн. Синхронизация при подключении к сети.')
+      setIsAddingItem(prev => ({ ...prev, [listId]: false }))
       return
     }
 
@@ -367,6 +444,8 @@ export default function ListsPage() {
       setError('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при добавлении товара')
+    } finally {
+      setIsAddingItem(prev => ({ ...prev, [listId]: false }))
     }
   }
 
@@ -379,6 +458,10 @@ export default function ListsPage() {
   }
 
   const toggleItem = async (listId: string, itemId: string) => {
+    const itemKey = `${listId}-${itemId}`
+
+    if (isTogglingItem[itemKey]) return
+
     // Находим товар и переключаем его статус локально
     const list = shoppingLists.find(l => l.id === listId)
     const item = list?.items.find(i => i.id === itemId)
@@ -400,6 +483,8 @@ export default function ListsPage() {
           : list
       )
     )
+
+    setIsTogglingItem(prev => ({ ...prev, [itemKey]: true }))
 
     if (!isOnline) {
       // Офлайн режим: сохраняем локально и добавляем в очередь
@@ -451,10 +536,16 @@ export default function ListsPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при обновлении товара')
+    } finally {
+      setIsTogglingItem(prev => ({ ...prev, [itemKey]: false }))
     }
   }
 
   const deleteItem = async (listId: string, itemId: string) => {
+    const itemKey = `${listId}-${itemId}`
+
+    if (isDeletingItem[itemKey]) return
+
     if (!isOnline) {
       // Офлайн режим
       setShoppingLists(lists =>
@@ -478,6 +569,8 @@ export default function ListsPage() {
       return
     }
 
+    setIsDeletingItem(prev => ({ ...prev, [itemKey]: true }))
+
     // Онлайн режим
     try {
       // Cookie автоматически отправляется браузером (httpOnly)
@@ -499,10 +592,16 @@ export default function ListsPage() {
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при удалении товара')
+    } finally {
+      setIsDeletingItem(prev => ({ ...prev, [itemKey]: false }))
     }
   }
 
   const deselectAll = async (listId: string) => {
+    if (isDeselectAll[listId]) return
+
+    setIsDeselectAll(prev => ({ ...prev, [listId]: true }))
+
     try {
       // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/deselect-all`, {
@@ -521,6 +620,8 @@ export default function ListsPage() {
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при снятии выделения')
+    } finally {
+      setIsDeselectAll(prev => ({ ...prev, [listId]: false }))
     }
   }
 
@@ -605,13 +706,22 @@ export default function ListsPage() {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="Название нового списка..."
-              className="flex-1 min-w-0 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px]"
+              disabled={isCreatingList}
+              className="flex-1 min-w-0 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               type="submit"
-              className="px-4 md:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base whitespace-nowrap"
+              disabled={isCreatingList}
+              className="px-4 md:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Создать
+              {isCreatingList ? (
+                <>
+                  <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  <span>Создание...</span>
+                </>
+              ) : (
+                'Создать'
+              )}
             </button>
           </form>
         </div>
@@ -648,6 +758,11 @@ export default function ListsPage() {
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
                 onCategoryChange={setSelectedCategoryId}
+                isDeleting={isDeletingList[list.id]}
+                isAddingItem={isAddingItem[list.id]}
+                isTogglingItem={isTogglingItem}
+                isDeletingItem={isDeletingItem}
+                isDeselectAll={isDeselectAll[list.id]}
               />
             ))
           )}

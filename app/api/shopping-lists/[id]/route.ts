@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
 
-// GET /api/shopping-lists/[id] - Получить конкретный список
+// GET /api/shopping-lists/[id] - Получить конкретный список с товарами
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,24 +16,46 @@ export async function GET(
 
     const { id } = await params
 
-    const shoppingList = await prisma.shoppingList.findFirst({
+    // Проверяем доступ (владелец или shared)
+    const hasAccess = await prisma.shoppingList.findFirst({
       where: {
         id,
-        userId, // Проверяем, что список принадлежит пользователю
-      },
-      include: {
-        items: {
-          orderBy: { createdAt: 'asc' }
-        }
+        OR: [
+          { userId }, // Владелец
+          { shares: { some: { userId } } } // Shared
+        ]
       }
     })
 
-    if (!shoppingList) {
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Список не найден' },
         { status: 404 }
       )
     }
+
+    const shoppingList = await prisma.shoppingList.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                category: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'asc' }
+        },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            name: true
+          }
+        }
+      }
+    })
 
     return NextResponse.json({ shoppingList })
 

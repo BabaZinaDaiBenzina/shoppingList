@@ -15,6 +15,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [csrfToken, setCsrfToken] = useState<string | null>(null)
   const refreshPromise = useRef<Promise<boolean> | null>(null)
   const hasTriedRefresh = useRef(false) // Защита от бесконечного цикла
+  const refreshFailureTimer = useRef<NodeJS.Timeout | null>(null) // Таймер сброса флага
 
   // Загрузка CSRF токена
   const loadCSRFToken = useCallback(async () => {
@@ -35,9 +36,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshTokens = useCallback(async (): Promise<boolean> => {
     // Предотвращаем параллельные refresh запросы
     if (isRefreshing) {
+      console.log('[Auth] Refresh уже выполняется, возвращаем существующий promise')
       return refreshPromise.current || false
     }
 
+    console.log('[Auth] Начинаем обновление токенов...')
     setIsRefreshing(true)
 
     const promise = (async () => {
@@ -46,21 +49,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           method: 'POST',
         })
 
+        console.log('[Auth] Refresh response status:', response.status)
+
         if (response.ok) {
           // Токены обновлены, получаем новые данные пользователя
           const meResponse = await fetch('/api/auth/me')
+
+          console.log('[Auth] /api/auth/me response status:', meResponse.status)
 
           if (meResponse.ok) {
             const data = await meResponse.json()
             setUser(data.user)
             localStorage.setItem('user', JSON.stringify(data.user))
+            console.log('[Auth] ✅ Токены успешно обновлены')
+
+            // Сбрасываем флаг неудачной попытки
+            hasTriedRefresh.current = false
+
+            // Очищаем таймер сброса если есть
+            if (refreshFailureTimer.current) {
+              clearTimeout(refreshFailureTimer.current)
+              refreshFailureTimer.current = null
+            }
+
             return true
+          } else {
+            const error = await meResponse.json()
+            console.error('[Auth] ❌ Ошибка /api/auth/me после refresh:', error)
           }
+        } else {
+          const error = await response.json()
+          console.error('[Auth] ❌ Ошибка refresh токена:', error)
         }
+
+        // Если refresh не удался, сбрасываем hasTriedRefresh через 5 минут
+        // Это позволит попробовать снова через некоторое время
+        if (refreshFailureTimer.current) {
+          clearTimeout(refreshFailureTimer.current)
+        }
+
+        refreshFailureTimer.current = setTimeout(() => {
+          console.log('[Auth] Сбрасываем hasTriedRefresh - можно пробовать снова')
+          hasTriedRefresh.current = false
+          refreshFailureTimer.current = null
+        }, 5 * 60 * 1000) // 5 минут
 
         return false
       } catch (error) {
-        console.error('Ошибка обновления токена:', error)
+        console.error('[Auth] ❌ Исключение при обновлении токена:', error)
+
+        // При ошибке сети тоже сбрасываем флаг через 5 минут
+        if (refreshFailureTimer.current) {
+          clearTimeout(refreshFailureTimer.current)
+        }
+
+        refreshFailureTimer.current = setTimeout(() => {
+          console.log('[Auth] Сбрасываем hasTriedRefresh после ошибки сети')
+          hasTriedRefresh.current = false
+          refreshFailureTimer.current = null
+        }, 5 * 60 * 1000)
+
         return false
       } finally {
         setIsRefreshing(false)
@@ -76,6 +124,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadAuthData = async () => {
       try {
+        console.log('[Auth] Загрузка данных авторизации...')
+
         // Загружаем CSRF токен
         await loadCSRFToken()
 
@@ -83,33 +133,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = localStorage.getItem('user')
 
         if (storedUser) {
-          setUser(JSON.parse(storedUser))
+          const user = JSON.parse(storedUser)
+          console.log('[Auth] Найден пользователь в localStorage:', user.username || user.email)
+          setUser(user)
         }
 
         // Проверяем валидность сессии через API
         let response = await fetch('/api/auth/me')
+        console.log('[Auth] Первая проверка /api/auth/me:', response.status)
 
         // Если access токен истек, пробуем обновить через refresh токен
         // Но только один раз, чтобы избежать бесконечного цикла
         if (!response.ok && response.status === 401 && !hasTriedRefresh.current) {
+          console.log('[Auth] Access токен истек, пробуем refresh...')
           hasTriedRefresh.current = true
           const refreshed = await refreshTokens()
+
           if (refreshed) {
+            console.log('[Auth] Refresh успешен, повторяем /api/auth/me')
             response = await fetch('/api/auth/me')
+          } else {
+            console.error('[Auth] ❌ Refresh не удался, пользователь будет выкинут')
           }
         }
 
         if (response.ok) {
           const data = await response.json()
+          console.log('[Auth] ✅ Сессия валидна, пользователь:', data.user.username || data.user.email)
           setUser(data.user)
           localStorage.setItem('user', JSON.stringify(data.user))
         } else if (storedUser) {
           // Если сессия недействительна, очищаем данные
+          console.warn('[Auth] ⚠️ Сессия недействительна, очищаем данные')
           localStorage.removeItem('user')
           setUser(null)
+        } else {
+          console.warn('[Auth] ⚠️ Пользователь не авторизован')
         }
       } catch (error) {
-        console.error('Ошибка загрузки данных авторизации:', error)
+        console.error('[Auth] ❌ Ошибка загрузки данных авторизации:', error)
         // Очищаем поврежденные данные
         localStorage.removeItem('user')
         setUser(null)

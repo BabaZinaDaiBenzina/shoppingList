@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
 
 // GET /api/shopping-lists - Получить все списки пользователя (включая shared)
+// Optimized: загружает только метаданные списков без items
 export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthenticatedUser(request)
@@ -11,19 +12,19 @@ export async function GET(request: NextRequest) {
       return unauthorizedResponse()
     }
 
-    // Получаем собственные списки
+    // Получаем собственные списки (без items для производительности)
     const ownLists = await prisma.shoppingList.findMany({
       where: { userId },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'asc' }
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            items: true,
+            shares: true
+          }
         }
       },
       orderBy: { updatedAt: 'desc' }
@@ -38,17 +39,12 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'asc' }
-        },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
         user: {
           select: {
             id: true,
@@ -64,23 +60,48 @@ export async function GET(request: NextRequest) {
             id: true,
             createdAt: true
           }
+        },
+        _count: {
+          select: {
+            items: true
+          }
         }
       },
       orderBy: { updatedAt: 'desc' }
     })
 
-    // Добавляем флаг isShared для удобства на фронтенде
+    // Подсчитываем количество купленных товаров для каждого списка (одним запросом)
+    const allListIds = [...ownLists, ...sharedLists].map(list => list.id)
+
+    const purchasedCounts = await prisma.item.groupBy({
+      by: ['listId'],
+      where: {
+        listId: { in: allListIds },
+        purchased: true
+      },
+      _count: {
+        listId: true
+      }
+    })
+
+    // Создаем мапу для быстрого доступа
+    const purchasedCountMap = Object.fromEntries(
+      purchasedCounts.map(item => [item.listId, item._count.listId])
+    )
+
+    // Добавляем флаг isShared и purchasedCount для удобства на фронтенде
     const ownListsWithFlag = ownLists.map(list => ({
       ...list,
       isShared: false,
       isOwner: true,
-      sharedWith: [] // Можно добавить информацию о том, с кем поделились
+      purchasedCount: purchasedCountMap[list.id] || 0,
     }))
 
     const sharedListsWithFlag = sharedLists.map(list => ({
       ...list,
       isShared: true,
       isOwner: false,
+      purchasedCount: purchasedCountMap[list.id] || 0,
     }))
 
     const shoppingLists = [...ownListsWithFlag, ...sharedListsWithFlag]
@@ -120,16 +141,16 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         userId,
       },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true
-              }
-            }
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            items: true
           }
-        },
+        }
       }
     })
 

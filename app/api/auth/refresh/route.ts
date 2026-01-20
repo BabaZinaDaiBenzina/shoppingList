@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Вычисляем новую дату истечения для refresh токена
     const newExpiresAt = new Date()
-    newExpiresAt.setDate(newExpiresAt.getDate() + 30) // 30 дней
+    newExpiresAt.setDate(newExpiresAt.getDate() + 90) // 90 дней (было 30)
 
     // Обновляем refresh токен в базе данных (ротация токенов)
     await prisma.refreshToken.update({

@@ -53,8 +53,8 @@ export async function verifyPassword(password: string, hashedPassword: string): 
  * Константы для токенов
  */
 export const TOKEN_EXPIRY = {
-  ACCESS: '15m' as const, // 15 минут для access токена
-  REFRESH: 30 * 24 * 60 * 60, // 30 дней для refresh токена в секундах
+  ACCESS: '1h' as const, // 1 час для access токена (было 15 минут)
+  REFRESH: 90 * 24 * 60 * 60, // 90 дней для refresh токена в секундах (было 30)
 }
 
 /**
