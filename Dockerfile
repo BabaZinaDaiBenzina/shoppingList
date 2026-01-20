@@ -28,22 +28,19 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma files properly for standalone (CLI + Client + Schema)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+# Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
-
-# Create node_modules/.bin directory and add prisma symlink
-RUN mkdir -p ./node_modules/.bin && \
-    ln -sf ../prisma/build/index.js ./node_modules/.bin/prisma && \
-    chmod +x ./node_modules/prisma/build/index.js
 
 # Copy package files for version tracking
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package-lock.json ./package-lock.json
 
-# Add node_modules/.bin to PATH
-ENV PATH="./node_modules/.bin:${PATH}"
+# Install Prisma CLI with dependencies for migrations
+RUN npm install --no-save prisma@6.19.2
+
+# Copy Prisma client from builder (already generated)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 EXPOSE 3000
 
