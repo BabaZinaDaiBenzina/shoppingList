@@ -2,8 +2,12 @@ import { NextRequest } from 'next/server'
 import { verifyToken, ACCESS_TOKEN_COOKIE } from './auth'
 import { prisma } from './prisma'
 
+// Старое имя куки для обратной совместимости
+const LEGACY_AUTH_COOKIE = 'auth_token'
+
 /**
  * Извлекает токен из httpOnly cookie
+ * Поддерживает как новые access_token, так и старые auth_token куки
  */
 function getTokenFromCookie(request: NextRequest): string | null {
   // Читаем токен из cookie
@@ -15,13 +19,22 @@ function getTokenFromCookie(request: NextRequest): string | null {
 
   // Парсим cookie
   const cookies = cookie.split(';').map(c => c.trim())
-  const accessCookie = cookies.find(c => c.startsWith(`${ACCESS_TOKEN_COOKIE}=`))
 
-  if (!accessCookie) {
-    return null
+  // Сначала пробуем новую куку access_token
+  let accessCookie = cookies.find(c => c.startsWith(`${ACCESS_TOKEN_COOKIE}=`))
+
+  if (accessCookie) {
+    return accessCookie.substring(ACCESS_TOKEN_COOKIE.length + 1)
   }
 
-  return accessCookie.substring(ACCESS_TOKEN_COOKIE.length + 1) // +1 для '='
+  // Fallback на старую куку auth_token для обратной совместимости
+  const legacyCookie = cookies.find(c => c.startsWith(`${LEGACY_AUTH_COOKIE}=`))
+
+  if (legacyCookie) {
+    return legacyCookie.substring(LEGACY_AUTH_COOKIE.length + 1)
+  }
+
+  return null
 }
 
 /**

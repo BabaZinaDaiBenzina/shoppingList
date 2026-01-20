@@ -14,6 +14,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [csrfToken, setCsrfToken] = useState<string | null>(null)
   const refreshPromise = useRef<Promise<boolean> | null>(null)
+  const hasTriedRefresh = useRef(false) // Защита от бесконечного цикла
 
   // Загрузка CSRF токена
   const loadCSRFToken = useCallback(async () => {
@@ -89,7 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let response = await fetch('/api/auth/me')
 
         // Если access токен истек, пробуем обновить через refresh токен
-        if (!response.ok && response.status === 401) {
+        // Но только один раз, чтобы избежать бесконечного цикла
+        if (!response.ok && response.status === 401 && !hasTriedRefresh.current) {
+          hasTriedRefresh.current = true
           const refreshed = await refreshTokens()
           if (refreshed) {
             response = await fetch('/api/auth/me')
@@ -153,6 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Токен установлен в httpOnly cookie, сохраняем только пользователя
       saveAuthData(data.user)
 
+      // Сбрасываем флаг попытки refresh после успешной авторизации
+      hasTriedRefresh.current = false
+
       // Перезагружаем CSRF токен после регистрации
       await loadCSRFToken()
     } finally {
@@ -182,6 +188,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Токен установлен в httpOnly cookie, сохраняем только пользователя
       saveAuthData(data.user)
+
+      // Сбрасываем флаг попытки refresh после успешной авторизации
+      hasTriedRefresh.current = false
 
       // Перезагружаем CSRF токен после входа
       await loadCSRFToken()
@@ -275,7 +284,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     // Если access токен истек (401), пробуем обновить
-    if (!response.ok && response.status === 401 && !isRefreshing) {
+    // Но только один раз за сессию, чтобы избежать бесконечного цикла
+    if (!response.ok && response.status === 401 && !isRefreshing && !hasTriedRefresh.current) {
+      hasTriedRefresh.current = true
       const refreshed = await refreshTokens()
 
       // Если обновление успешно, повторяем запрос
