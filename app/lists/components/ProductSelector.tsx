@@ -260,6 +260,7 @@ export function ProductSelector({
                               e.stopPropagation()
                               setQuantity(product.id, parseInt(e.target.value) || 1)
                             }}
+                            onFocus={(e) => setTimeout(() => e.target.select(), 0)}
                             min="1"
                             className="w-12 px-1 py-2 text-center text-sm border-0 focus:outline-none focus:ring-0 dark:bg-zinc-800"
                             onClick={(e) => e.stopPropagation()}

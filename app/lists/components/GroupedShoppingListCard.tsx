@@ -479,6 +479,7 @@ export function GroupedShoppingListCard({
                                       type="number"
                                       value={editQuantity}
                                       onChange={(e) => setEditQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                      onFocus={(e) => setTimeout(() => e.target.select(), 0)}
                                       min="1"
                                       className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
                                     />
@@ -486,6 +487,9 @@ export function GroupedShoppingListCard({
                                       type="text"
                                       value={editUnit}
                                       onChange={(e) => setEditUnit(e.target.value)}
+                                      onFocus={(e) => {
+                                        e.target.setSelectionRange(0, e.target.value.length)
+                                      }}
                                       placeholder="шт"
                                       className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
                                     />
