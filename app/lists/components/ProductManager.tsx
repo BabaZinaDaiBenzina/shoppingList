@@ -211,8 +211,8 @@ export function ProductManager({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white dark:bg-zinc-800 w-full sm:max-w-4xl sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center pt-4 sm:pt-0 p-0 sm:p-4">
+      <div className="bg-white dark:bg-zinc-800 w-full sm:max-w-4xl rounded-2xl sm:rounded-2xl max-h-[calc(100vh-2rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Заголовок */}
         <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700">
           <div className="flex items-center justify-between">
@@ -300,18 +300,35 @@ export function ProductManager({
                 {editingProduct ? 'Редактировать продукт' : 'Новый продукт'}
               </h3>
               <div className="space-y-3">
-                <select
-                  value={productForm.categoryId}
-                  onChange={(e) => setProductForm({ ...productForm, categoryId: e.target.value })}
-                  className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
-                >
-                  <option value="">Выберите категорию</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
-                    </option>
-                  ))}
-                </select>
+                {/* Сетка категорий вместо select */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    Категория
+                  </label>
+                  <div className="max-h-[140px] overflow-y-auto">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pb-2">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setProductForm({ ...productForm, categoryId: cat.id })}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-center truncate ${
+                            productForm.categoryId === cat.id
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                          }`}
+                          title={cat.name}
+                        >
+                          {cat.icon} {cat.name.length > 8 ? cat.name.slice(0, 6) + '..' : cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {productForm.categoryId === '' && (
+                    <p className="text-red-600 dark:text-red-400 text-sm mt-1">Выберите категорию</p>
+                  )}
+                </div>
+
                 <input
                   type="text"
                   value={productForm.name}
@@ -329,7 +346,8 @@ export function ProductManager({
                 <div className="flex gap-2">
                   <button
                     onClick={saveProduct}
-                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    disabled={!productForm.categoryId || !productForm.name.trim()}
+                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Сохранить
                   </button>

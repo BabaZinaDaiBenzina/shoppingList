@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { formatQuantity } from '@/lib/utils/pluralize'
 
 interface Product {
   id: string
@@ -17,6 +18,7 @@ interface Item {
   id: string
   name: string
   quantity: number
+  unit: string | null
   purchased: boolean
   product?: Product | null
 }
@@ -49,7 +51,8 @@ interface GroupedShoppingListCardProps {
   onToggle: (listId: string) => void
   onDelete: (listId: string) => void
   onShare?: (listId: string) => void
-  onAddItem: (listId: string, itemName: string, productId?: string, categoryId?: string) => void
+  onAddItem: (listId: string, itemName: string, quantity?: number, unit?: string, productId?: string, categoryId?: string) => void
+  onUpdateItem?: (listId: string, itemId: string, data: { quantity?: number; unit?: string }) => void
   onToggleItem: (listId: string, itemId: string) => void
   onDeleteItem: (listId: string, itemId: string) => void
   onDeselectAll: (listId: string) => void
@@ -60,6 +63,7 @@ interface GroupedShoppingListCardProps {
   onCategoryChange: (categoryId: string | null) => void
   isDeleting?: boolean
   isAddingItem?: boolean
+  isUpdatingItem?: Record<string, boolean>
   isTogglingItem?: Record<string, boolean>
   isDeletingItem?: Record<string, boolean>
   isDeselectAll?: boolean
@@ -72,6 +76,7 @@ export function GroupedShoppingListCard({
   onDelete,
   onShare,
   onAddItem,
+  onUpdateItem,
   onToggleItem,
   onDeleteItem,
   onDeselectAll,
@@ -82,12 +87,16 @@ export function GroupedShoppingListCard({
   onCategoryChange,
   isDeleting = false,
   isAddingItem = false,
+  isUpdatingItem = {},
   isTogglingItem = {},
   isDeletingItem = {},
   isDeselectAll = false,
 }: GroupedShoppingListCardProps) {
   const [showDropdown, setShowDropdown] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editQuantity, setEditQuantity] = useState(1)
+  const [editUnit, setEditUnit] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const items = list.items || []
 
@@ -156,6 +165,32 @@ export function GroupedShoppingListCard({
       }
       return newSet
     })
+  }
+
+  const handleAddItem = () => {
+    const trimmedName = newItemName.trim()
+    if (!trimmedName) return
+    // Добавляем с дефолтными значениями: quantity=1, unit берётся из каталога
+    onAddItem(list.id, trimmedName, 1, undefined, undefined, selectedCategoryId || undefined)
+  }
+
+  const startEditing = (item: Item) => {
+    setEditingItemId(item.id)
+    setEditQuantity(item.quantity)
+    setEditUnit(item.unit || '')
+  }
+
+  const cancelEditing = () => {
+    setEditingItemId(null)
+    setEditQuantity(1)
+    setEditUnit('')
+  }
+
+  const saveEdit = (itemId: string) => {
+    if (onUpdateItem) {
+      onUpdateItem(list.id, itemId, { quantity: editQuantity, unit: editUnit || undefined })
+    }
+    cancelEditing()
   }
 
   return (
@@ -298,7 +333,7 @@ export function GroupedShoppingListCard({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
-                  onAddItem(list.id, newItemName, undefined, selectedCategoryId || undefined)
+                  handleAddItem()
                 }
               }}
               placeholder="Добавить товар..."
@@ -345,7 +380,7 @@ export function GroupedShoppingListCard({
             </div>
 
             <button
-              onClick={() => onAddItem(list.id, newItemName, undefined, selectedCategoryId || undefined)}
+              onClick={handleAddItem}
               disabled={isAddingItem}
               className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -402,66 +437,134 @@ export function GroupedShoppingListCard({
                           const itemKey = `${list.id}-${item.id}`
                           const isToggling = isTogglingItem[itemKey]
                           const isDeleting = isDeletingItem[itemKey]
+                          const isUpdating = isUpdatingItem[itemKey]
+                          const isEditing = editingItemId === item.id
+                          const displayUnit = item.unit || item.product?.unit
 
                           return (
                             <div
                               key={item.id}
-                              className={`flex items-center gap-3 p-3 md:p-3 rounded-lg transition-colors ${
+                              className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
                                 isToggling ? 'opacity-50 cursor-wait' : 'cursor-pointer'
                               } ${
                                 item.purchased
                                   ? 'bg-green-50 dark:bg-green-900/20'
                                   : 'bg-white dark:bg-zinc-800'
                               }`}
-                              onClick={() => !isToggling && onToggleItem(list.id, item.id)}
+                              onClick={() => !isToggling && !isEditing && onToggleItem(list.id, item.id)}
                             >
+                              {/* Чекбокс */}
                               <div
-                                className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                                className={`flex-shrink-0 w-6 h-6 md:w-5 md:h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
                                   item.purchased
                                     ? 'bg-green-500 border-green-500 text-white'
                                     : 'border-zinc-300 dark:border-zinc-600'
                                 }`}
                               >
                                 {isToggling ? (
-                                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                  <div className="w-3 h-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
                                 ) : item.purchased ? (
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                   </svg>
                                 ) : null}
                               </div>
+
+                              {/* Информация о товаре */}
                               <div className="flex-1 min-w-0">
-                                <span
-                                  className={`text-base md:text-sm block truncate ${
-                                    item.purchased
-                                      ? 'line-through text-zinc-500 dark:text-zinc-400'
-                                      : 'text-zinc-900 dark:text-zinc-50'
-                                  }`}
-                                >
-                                  {item.name}
-                                </span>
-                                {item.quantity > 1 && (
-                                  <span className="ml-2 text-sm text-zinc-500 dark:text-zinc-400">
-                                    ×{item.quantity}
-                                  </span>
+                                {isEditing ? (
+                                  // Режим редактирования
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="number"
+                                      value={editQuantity}
+                                      onChange={(e) => setEditQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                      min="1"
+                                      className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={editUnit}
+                                      onChange={(e) => setEditUnit(e.target.value)}
+                                      placeholder="шт"
+                                      className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+                                    />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        saveEdit(item.id)
+                                      }}
+                                      disabled={isUpdating}
+                                      className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20 rounded transition-colors disabled:opacity-50"
+                                    >
+                                      {isUpdating ? (
+                                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                      ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        cancelEditing()
+                                      }}
+                                      className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  // Режим просмотра
+                                  <div className={`flex items-center gap-2 ${item.purchased ? 'line-through' : ''}`}>
+                                    <span className="flex-1 text-sm md:text-base truncate text-zinc-900 dark:text-zinc-50">
+                                      {item.name}
+                                    </span>
+                                    {(item.quantity > 1 || displayUnit) && (
+                                      <span className="w-1/3 text-sm text-zinc-600 dark:text-zinc-400 text-right">
+                                        {formatQuantity(item.quantity, displayUnit || null)}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onDeleteItem(list.id, item.id)
-                                }}
-                                disabled={isDeleting}
-                                className="p-3 md:p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {isDeleting ? (
-                                  <div className="w-5 h-5 md:w-4 md:h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
-                                ) : (
-                                  <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                )}
-                              </button>
+
+                              {/* Кнопки действий */}
+                              {!isEditing && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      startEditing(item)
+                                    }}
+                                    className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors active:scale-95 min-w-[40px] min-h-[40px] flex items-center justify-center flex-shrink-0"
+                                    title="Изменить количество"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onDeleteItem(list.id, item.id)
+                                    }}
+                                    disabled={isDeleting}
+                                    className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[40px] min-h-[40px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isDeleting ? (
+                                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+                                    ) : (
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )
                         })}

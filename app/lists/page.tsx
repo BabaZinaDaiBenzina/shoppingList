@@ -25,6 +25,7 @@ interface Item {
   id: string
   name: string
   quantity: number
+  unit: string | null
   purchased: boolean
   product?: Product | null
 }
@@ -75,6 +76,7 @@ export default function ListsPage() {
   const [isDeletingList, setIsDeletingList] = useState<Record<string, boolean>>({})
   const [isAddingItem, setIsAddingItem] = useState<Record<string, boolean>>({})
   const [isDeletingItem, setIsDeletingItem] = useState<Record<string, boolean>>({})
+  const [isUpdatingItem, setIsUpdatingItem] = useState<Record<string, boolean>>({})
   const [isTogglingItem, setIsTogglingItem] = useState<Record<string, boolean>>({})
   const [isDeselectAll, setIsDeselectAll] = useState<Record<string, boolean>>({})
 
@@ -351,7 +353,7 @@ export default function ListsPage() {
   }
 
   // Items operations
-  const addItem = async (listId: string, itemName: string, productId?: string, categoryId?: string) => {
+  const addItem = async (listId: string, itemName: string, quantity = 1, unit?: string, productId?: string, categoryId?: string) => {
     if (!itemName?.trim() || isAddingItem[listId]) return
 
     setIsAddingItem(prev => ({ ...prev, [listId]: true }))
@@ -376,7 +378,8 @@ export default function ListsPage() {
       const tempItem = {
         id: tempItemId,
         name: trimmedName,
-        quantity: 1,
+        quantity: quantity || 1,
+        unit: unit || null,
         purchased: false
       }
 
@@ -396,7 +399,8 @@ export default function ListsPage() {
 
       await enqueueOperation('CREATE', `/api/shopping-lists/${listId}/items`, 'POST', {
         name: trimmedName,
-        quantity: 1,
+        quantity: quantity || 1,
+        unit: unit || null,
         productId: productId || null,
         categoryId: categoryId || null
       })
@@ -417,7 +421,8 @@ export default function ListsPage() {
         },
         body: JSON.stringify({
           name: trimmedName,
-          quantity: 1,
+          quantity: quantity || 1,
+          unit: unit || null,
           productId: productId || null,
           categoryId: categoryId || null
         }),
@@ -454,7 +459,7 @@ export default function ListsPage() {
       setError('Откройте список, чтобы добавлять товары')
       return
     }
-    addItem(expandedListId, product.name, product.id)
+    addItem(expandedListId, product.name, _quantity, product.unit || undefined, product.id)
   }
 
   const toggleItem = async (listId: string, itemId: string) => {
@@ -594,6 +599,55 @@ export default function ListsPage() {
       setError(err instanceof Error ? err.message : 'Ошибка при удалении товара')
     } finally {
       setIsDeletingItem(prev => ({ ...prev, [itemKey]: false }))
+    }
+  }
+
+  const updateItem = async (listId: string, itemId: string, data: { quantity?: number; unit?: string }) => {
+    const itemKey = `${listId}-${itemId}`
+
+    if (isUpdatingItem[itemKey]) return
+
+    setIsUpdatingItem(prev => ({ ...prev, [itemKey]: true }))
+
+    // Онлайн режим
+    try {
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const responseData = await response.json()
+      if (!response.ok) throw new Error(responseData.error || 'Ошибка при обновлении товара')
+
+      setShoppingLists(lists =>
+        lists.map(list =>
+          list.id === listId
+            ? {
+                ...list,
+                items: list.items.map(item =>
+                  item.id === itemId ? responseData.item : item
+                ),
+              }
+            : list
+        )
+      )
+
+      // Сохраняем в IndexedDB
+      const updatedList = shoppingLists.find(l => l.id === listId)
+      if (updatedList) {
+        const listWithUpdatedItem = {
+          ...updatedList,
+          items: updatedList.items.map(i => i.id === itemId ? responseData.item : i)
+        }
+        await saveOfflineList(listWithUpdatedItem)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка при обновлении товара')
+    } finally {
+      setIsUpdatingItem(prev => ({ ...prev, [itemKey]: false }))
     }
   }
 
@@ -748,6 +802,7 @@ export default function ListsPage() {
                 onDelete={deleteList}
                 onShare={list.isOwner ? (id) => setShareModalListId(id) : undefined}
                 onAddItem={addItem}
+                onUpdateItem={updateItem}
                 onToggleItem={toggleItem}
                 onDeleteItem={deleteItem}
                 onDeselectAll={deselectAll}
@@ -760,6 +815,7 @@ export default function ListsPage() {
                 onCategoryChange={setSelectedCategoryId}
                 isDeleting={isDeletingList[list.id]}
                 isAddingItem={isAddingItem[list.id]}
+                isUpdatingItem={isUpdatingItem}
                 isTogglingItem={isTogglingItem}
                 isDeletingItem={isDeletingItem}
                 isDeselectAll={isDeselectAll[list.id]}

@@ -16,7 +16,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { name, quantity } = body
+    const { name, quantity, unit } = body
 
     // Находим товар
     const item = await prisma.item.findUnique({
@@ -45,6 +45,14 @@ export async function PUT(
       data: {
         ...(name && { name: name.trim() }),
         ...(quantity !== undefined && { quantity: Math.max(1, quantity) }),
+        ...(unit !== undefined && { unit: unit || null }),
+      },
+      include: {
+        product: {
+          include: {
+            category: true
+          }
+        }
       }
     })
 
