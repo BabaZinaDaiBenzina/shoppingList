@@ -1,12 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { GroupedShoppingListCard } from './components/GroupedShoppingListCard'
 import { ProductSelector } from './components/ProductSelector'
 import { ProductManager } from './components/ProductManager'
 import { ShareModal } from './components/ShareModal'
+import { SearchAndFilter } from './components/SearchAndFilter'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { TemplatesModal } from './components/TemplatesModal'
+import { SaveAsTemplateModal } from './components/SaveAsTemplateModal'
+import { haptics } from '@/lib/utils/haptic'
 import { useOfflineData } from '@/hooks/useOfflineData'
 import { indexedDB } from '@/lib/services/indexedDB'
 
@@ -27,6 +32,7 @@ interface Item {
   quantity: number
   unit: string | null
   purchased: boolean
+  createdAt: string
   product?: Product | null
 }
 
@@ -68,8 +74,16 @@ export default function ListsPage() {
   const [shareModalListId, setShareModalListId] = useState<string | null>(null)
   const [showProductSelector, setShowProductSelector] = useState(false)
   const [showProductManager, setShowProductManager] = useState(false)
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false)
+  const [saveAsTemplateListId, setSaveAsTemplateListId] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+
+  // Search and filters
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'purchased' | 'unpurchased'>('all')
+  const [sortBy, setSortBy] = useState<'name' | 'date'>('date')
 
   // Loading states для мутаций
   const [isCreatingList, setIsCreatingList] = useState(false)
@@ -79,6 +93,10 @@ export default function ListsPage() {
   const [isUpdatingItem, setIsUpdatingItem] = useState<Record<string, boolean>>({})
   const [isTogglingItem, setIsTogglingItem] = useState<Record<string, boolean>>({})
   const [isDeselectAll, setIsDeselectAll] = useState<Record<string, boolean>>({})
+
+  // Confirm dialogs
+  const [deleteListConfirm, setDeleteListConfirm] = useState<string | null>(null)
+  const [deleteItemConfirm, setDeleteItemConfirm] = useState<{ listId: string; itemId: string } | null>(null)
 
   // Effects
   useEffect(() => {
@@ -314,7 +332,15 @@ export default function ListsPage() {
     }
   }
 
-  const deleteList = async (listId: string) => {
+  // Функция для подтверждения удаления списка
+  const confirmDeleteList = (listId: string) => {
+    setDeleteListConfirm(listId)
+  }
+
+  // Выполнение удаления списка
+  const executeDeleteList = async (listId: string) => {
+    setDeleteListConfirm(null)
+
     if (isDeletingList[listId]) return
 
     setIsDeletingList(prev => ({ ...prev, [listId]: true }))
@@ -352,6 +378,10 @@ export default function ListsPage() {
     }
   }
 
+  const deleteList = (listId: string) => {
+    confirmDeleteList(listId)
+  }
+
   // Items operations
   const addItem = async (listId: string, itemName: string, quantity = 1, unit?: string, productId?: string, categoryId?: string) => {
     if (!itemName?.trim() || isAddingItem[listId]) return
@@ -380,7 +410,8 @@ export default function ListsPage() {
         name: trimmedName,
         quantity: quantity || 1,
         unit: unit || null,
-        purchased: false
+        purchased: false,
+        createdAt: new Date().toISOString()
       }
 
       setShoppingLists(lists =>
@@ -546,7 +577,15 @@ export default function ListsPage() {
     }
   }
 
-  const deleteItem = async (listId: string, itemId: string) => {
+  // Функция для подтверждения удаления товара
+  const confirmDeleteItem = (listId: string, itemId: string) => {
+    setDeleteItemConfirm({ listId, itemId })
+  }
+
+  // Выполнение удаления товара
+  const executeDeleteItem = async (listId: string, itemId: string) => {
+    setDeleteItemConfirm(null)
+
     const itemKey = `${listId}-${itemId}`
 
     if (isDeletingItem[itemKey]) return
@@ -600,6 +639,10 @@ export default function ListsPage() {
     } finally {
       setIsDeletingItem(prev => ({ ...prev, [itemKey]: false }))
     }
+  }
+
+  const deleteItem = (listId: string, itemId: string) => {
+    confirmDeleteItem(listId, itemId)
   }
 
   const updateItem = async (listId: string, itemId: string, data: { quantity?: number; unit?: string }) => {
@@ -679,6 +722,43 @@ export default function ListsPage() {
     }
   }
 
+  // Templates operations
+  const applyTemplate = async (templateId: string, listName: string) => {
+    const response = await fetch(`/api/templates/${templateId}/apply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ listName }),
+    })
+
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.error || 'Ошибка при применении шаблона')
+    }
+
+    // Добавляем новый список в состояние
+    setShoppingLists(prev => [data.shoppingList, ...prev])
+  }
+
+  const saveAsTemplate = async (listId: string, templateName: string, description: string) => {
+    const response = await fetch(`/api/shopping-lists/${listId}/save-as-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ templateName, templateDescription: description }),
+    })
+
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.error || 'Ошибка при сохранении шаблона')
+    }
+
+    setError(`Шаблон "${data.template.name}" создан успешно!`)
+    setTimeout(() => setError(''), 3000)
+  }
+
   // Helper functions
   const isItemInList = (itemName: string) => {
     if (!expandedListId) return false
@@ -688,6 +768,50 @@ export default function ListsPage() {
       item => item.name.toLowerCase() === itemName.toLowerCase()
     )
   }
+
+  // Фильтрация и сортировка товаров в списках
+  const filteredShoppingLists = useMemo(() => {
+    return shoppingLists.map(list => {
+      let filteredItems = [...(list.items || [])]
+
+      // Фильтр по поиску
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim()
+        filteredItems = filteredItems.filter(item =>
+          item.name.toLowerCase().includes(query)
+        )
+      }
+
+      // Фильтр по категории
+      if (categoryFilter) {
+        filteredItems = filteredItems.filter(item =>
+          item.product?.category?.id === categoryFilter
+        )
+      }
+
+      // Фильтр по статусу
+      if (statusFilter === 'purchased') {
+        filteredItems = filteredItems.filter(item => item.purchased)
+      } else if (statusFilter === 'unpurchased') {
+        filteredItems = filteredItems.filter(item => !item.purchased)
+      }
+
+      // Сортировка
+      if (sortBy === 'name') {
+        filteredItems.sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+      } else {
+        // По умолчанию сортировка по дате (сначала старые)
+        filteredItems.sort((a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+      }
+
+      return {
+        ...list,
+        items: filteredItems
+      }
+    })
+  }, [shoppingLists, searchQuery, categoryFilter, statusFilter, sortBy])
 
   // Loading state
   if (authLoading || isLoading) {
@@ -731,6 +855,16 @@ export default function ListsPage() {
               🛒 Списки покупок
             </h1>
             <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  haptics.press()
+                  setShowTemplatesModal(true)
+                }}
+                className="px-4 py-3 md:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
+              >
+                <span>📋</span>
+                <span className="hidden sm:inline">Шаблоны</span>
+              </button>
               <button
                 onClick={() => setShowProductManager(true)}
                 className="px-4 py-3 md:py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
@@ -780,20 +914,35 @@ export default function ListsPage() {
           </form>
         </div>
 
+        {/* Поиск и фильтры - показываем только если есть списки */}
+        {shoppingLists.length > 0 && expandedListId && (
+          <SearchAndFilter
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            categoryFilter={categoryFilter}
+            onCategoryChange={setCategoryFilter}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            categories={categories}
+          />
+        )}
+
         {/* Списки */}
         <div className="space-y-4">
-          {shoppingLists.length === 0 ? (
+          {filteredShoppingLists.length === 0 && shoppingLists.length > 0 ? (
             <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8 md:p-12 text-center">
-              <div className="text-5xl md:text-6xl mb-4">📝</div>
+              <div className="text-5xl md:text-6xl mb-4">🔍</div>
               <h2 className="text-xl md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-                Пока нет списков
+                Ничего не найдено
               </h2>
               <p className="text-zinc-600 dark:text-zinc-400 text-base">
-                Создайте свой первый список покупок!
+                Попробуйте изменить параметры поиска или фильтры
               </p>
             </div>
           ) : (
-            shoppingLists.map((list) => (
+            filteredShoppingLists.map((list) => (
               <GroupedShoppingListCard
                 key={list.id}
                 list={list}
@@ -801,6 +950,7 @@ export default function ListsPage() {
                 onToggle={(id) => setExpandedListId(expandedListId === id ? null : id)}
                 onDelete={deleteList}
                 onShare={list.isOwner ? (id) => setShareModalListId(id) : undefined}
+                onSaveAsTemplate={list.isOwner ? (id) => setSaveAsTemplateListId(id) : undefined}
                 onAddItem={addItem}
                 onUpdateItem={updateItem}
                 onToggleItem={toggleItem}
@@ -848,6 +998,54 @@ export default function ListsPage() {
           isOpen={showProductManager}
           onClose={() => setShowProductManager(false)}
         />
+
+        {/* Confirm Dialogs */}
+        {deleteListConfirm && (
+          <ConfirmDialog
+            isOpen={!!deleteListConfirm}
+            title="Удалить список?"
+            message="Вы уверены, что хотите удалить этот список? Все товары будут удалены без возможности восстановления."
+            confirmText="Удалить"
+            cancelText="Отмена"
+            onConfirm={() => executeDeleteList(deleteListConfirm)}
+            onCancel={() => setDeleteListConfirm(null)}
+            type="danger"
+          />
+        )}
+
+        {deleteItemConfirm && (
+          <ConfirmDialog
+            isOpen={!!deleteItemConfirm}
+            title="Удалить товар?"
+            message="Вы уверены, что хотите удалить этот товар из списка?"
+            confirmText="Удалить"
+            cancelText="Отмена"
+            onConfirm={() => executeDeleteItem(deleteItemConfirm.listId, deleteItemConfirm.itemId)}
+            onCancel={() => setDeleteItemConfirm(null)}
+            type="danger"
+          />
+        )}
+
+        {/* Templates Modal */}
+        <TemplatesModal
+          isOpen={showTemplatesModal}
+          onClose={() => setShowTemplatesModal(false)}
+          onApplyTemplate={applyTemplate}
+        />
+
+        {/* Save as Template Modal */}
+        {saveAsTemplateListId && (
+          <SaveAsTemplateModal
+            isOpen={!!saveAsTemplateListId}
+            onClose={() => setSaveAsTemplateListId(null)}
+            listId={saveAsTemplateListId}
+            listName={shoppingLists.find(l => l.id === saveAsTemplateListId)?.name || ''}
+            itemNames={shoppingLists.find(l => l.id === saveAsTemplateListId)?.items.map(i => i.name) || []}
+            onSave={async (templateName, description) => {
+              await saveAsTemplate(saveAsTemplateListId, templateName, description)
+            }}
+          />
+        )}
       </div>
     </div>
   )

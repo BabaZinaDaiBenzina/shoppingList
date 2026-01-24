@@ -272,6 +272,140 @@ async function main() {
   }
 
   console.log(`✅ Created ${allProducts.length} products`)
+
+  // Create admin user for templates (if not exists)
+  const adminUser = await prisma.user.upsert({
+    where: { username: 'admin' },
+    update: {},
+    create: {
+      username: 'admin',
+      email: 'admin@system.local',
+      passwordHash: '$2a$10$abcdefghijklmnopqrstuvwxyz123456', // Placeholder hash
+      name: 'System Admin',
+      role: 'admin',
+    },
+  })
+
+  // Create default templates
+  const weeklyShoppingItems = [
+    { name: 'Молоко', quantity: 2, unit: 'л', categoryId: dairyCategory.id },
+    { name: 'Хлеб белый', quantity: 1, unit: 'батон', categoryId: bakeryCategory.id },
+    { name: 'Хлеб черный', quantity: 1, unit: 'батон', categoryId: bakeryCategory.id },
+    { name: 'Яйца', quantity: 1, unit: 'десяток', categoryId: dairyCategory.id },
+    { name: 'Сыр', quantity: 300, unit: 'г', categoryId: dairyCategory.id },
+    { name: 'Картофель', quantity: 2, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Морковь', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Лук', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Капуста', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Помидоры', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Огурцы', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Курица', quantity: 1, unit: 'кг', categoryId: meatCategory.id },
+    { name: 'Сосиски', quantity: 1, unit: 'упак', categoryId: meatCategory.id },
+    { name: 'Макароны', quantity: 500, unit: 'г', categoryId: groceryCategory.id },
+    { name: 'Рис', quantity: 500, unit: 'г', categoryId: groceryCategory.id },
+    { name: 'Сахар', quantity: 1, unit: 'кг', categoryId: groceryCategory.id },
+    { name: 'Чай', quantity: 1, unit: 'пачка', categoryId: drinksCategory.id },
+    { name: 'Кофе', quantity: 1, unit: 'пачка', categoryId: drinksCategory.id },
+    { name: 'Вода', quantity: 2, unit: 'л', categoryId: drinksCategory.id },
+  ]
+
+  const partyItems = [
+    { name: 'Свинина', quantity: 2, unit: 'кг', categoryId: meatCategory.id },
+    { name: 'Курица', quantity: 2, unit: 'кг', categoryId: meatCategory.id },
+    { name: 'Сосиски', quantity: 2, unit: 'упак', categoryId: meatCategory.id },
+    { name: 'Сыр', quantity: 500, unit: 'г', categoryId: dairyCategory.id },
+    { name: 'Колбаса', quantity: 500, unit: 'г', categoryId: meatCategory.id },
+    { name: 'Хлеб белый', quantity: 2, unit: 'батон', categoryId: bakeryCategory.id },
+    { name: 'Булочки', quantity: 10, unit: 'шт', categoryId: bakeryCategory.id },
+    { name: 'Помидоры', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Огурцы', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Лимоны', quantity: 3, unit: 'шт', categoryId: produceCategory.id },
+    { name: 'Картофель', quantity: 2, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Чипсы', quantity: 3, unit: 'упак', categoryId: snacksCategory.id },
+    { name: 'Шоколад', quantity: 3, unit: 'плитка', categoryId: snacksCategory.id },
+    { name: 'Конфеты', quantity: 500, unit: 'г', categoryId: snacksCategory.id },
+    { name: 'Печенье', quantity: 300, unit: 'г', categoryId: snacksCategory.id },
+    { name: 'Лимонад', quantity: 3, unit: 'л', categoryId: drinksCategory.id },
+    { name: 'Сок', quantity: 2, unit: 'л', categoryId: drinksCategory.id },
+    { name: 'Вода', quantity: 3, unit: 'л', categoryId: drinksCategory.id },
+    { name: 'Кетчуп', quantity: 1, unit: 'упак', categoryId: saucesCategory.id },
+    { name: 'Майонез', quantity: 1, unit: 'упак', categoryId: saucesCategory.id },
+  ]
+
+  const picnicItems = [
+    { name: 'Сосиски', quantity: 10, unit: 'шт', categoryId: meatCategory.id },
+    { name: 'Котлеты', quantity: 10, unit: 'шт', categoryId: meatCategory.id },
+    { name: 'Хлеб белый', quantity: 1, unit: 'батон', categoryId: bakeryCategory.id },
+    { name: 'Лаваш', quantity: 2, unit: 'шт', categoryId: bakeryCategory.id },
+    { name: 'Помидоры', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Огурцы', quantity: 1, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Лимоны', quantity: 2, unit: 'шт', categoryId: produceCategory.id },
+    { name: 'Сыр', quantity: 300, unit: 'г', categoryId: dairyCategory.id },
+    { name: 'Колбаса', quantity: 300, unit: 'г', categoryId: meatCategory.id },
+    { name: 'Картофель', quantity: 2, unit: 'кг', categoryId: produceCategory.id },
+    { name: 'Чипсы', quantity: 2, unit: 'упак', categoryId: snacksCategory.id },
+    { name: 'Шоколад', quantity: 2, unit: 'плитка', categoryId: snacksCategory.id },
+    { name: 'Орехи', quantity: 200, unit: 'г', categoryId: snacksCategory.id },
+    { name: 'Лимонад', quantity: 2, unit: 'л', categoryId: drinksCategory.id },
+    { name: 'Вода', quantity: 3, unit: 'л', categoryId: drinksCategory.id },
+    { name: 'Сок', quantity: 1, unit: 'л', categoryId: drinksCategory.id },
+    { name: 'Туалетная бумага', quantity: 1, unit: 'упак', categoryId: cleaningCategory.id },
+    { name: 'Полотенца бумажные', quantity: 1, unit: 'упак', categoryId: cleaningCategory.id },
+    { name: 'Губки для посуды', quantity: 5, unit: 'шт', categoryId: cleaningCategory.id },
+  ]
+
+  // Create templates
+  const templates = [
+    {
+      name: 'Еженедельные покупки',
+      description: 'Базовый набор продуктов на неделю для семьи',
+      isPublic: true,
+      items: weeklyShoppingItems,
+    },
+    {
+      name: 'Праздничный стол',
+      description: 'Продукты для праздничного застолья с гостями',
+      isPublic: true,
+      items: partyItems,
+    },
+    {
+      name: 'Пикник на природе',
+      description: 'Все необходимое для пикника на свежем воздухе',
+      isPublic: true,
+      items: picnicItems,
+    },
+  ]
+
+  for (const template of templates) {
+    await prisma.template.upsert({
+      where: {
+        userId_name: {
+          userId: adminUser.id,
+          name: template.name,
+        },
+      },
+      update: {
+        description: template.description,
+        isPublic: template.isPublic,
+      },
+      create: {
+        name: template.name,
+        description: template.description,
+        isPublic: template.isPublic,
+        userId: adminUser.id,
+        items: {
+          create: template.items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            categoryId: item.categoryId,
+          })),
+        },
+      },
+    })
+  }
+
+  console.log(`✅ Created ${templates.length} default templates`)
   console.log('🎉 Seeding completed!')
 }
 

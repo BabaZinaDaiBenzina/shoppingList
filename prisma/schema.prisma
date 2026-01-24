@@ -24,6 +24,7 @@ model User {
   sharedLists   ListShare[]
   recipes       Recipe[]
   refreshTokens RefreshToken[]
+  templates     Template[]
 
   @@index([email])
 }
@@ -104,6 +105,37 @@ model Recipe {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model Template {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  isPublic    Boolean         @default(false) // Публичные шаблоны доступны всем
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       TemplateItem[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([isPublic])
+  @@unique([userId, name])
+}
+
+model TemplateItem {
+  id         String   @id @default(cuid())
+  name       String
+  quantity   Int      @default(1)
+  unit       String?
+  productId  String?  // Optional reference to Product catalog
+  categoryId String?  // For better organization
+  templateId String
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([templateId])
 }
 
 model RefreshToken {

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { formatQuantity } from '@/lib/utils/pluralize'
+import { haptics } from '@/lib/utils/haptic'
 
 interface Product {
   id: string
@@ -51,6 +52,7 @@ interface GroupedShoppingListCardProps {
   onToggle: (listId: string) => void
   onDelete: (listId: string) => void
   onShare?: (listId: string) => void
+  onSaveAsTemplate?: (listId: string) => void
   onAddItem: (listId: string, itemName: string, quantity?: number, unit?: string, productId?: string, categoryId?: string) => void
   onUpdateItem?: (listId: string, itemId: string, data: { quantity?: number; unit?: string }) => void
   onToggleItem: (listId: string, itemId: string) => void
@@ -75,6 +77,7 @@ export function GroupedShoppingListCard({
   onToggle,
   onDelete,
   onShare,
+  onSaveAsTemplate,
   onAddItem,
   onUpdateItem,
   onToggleItem,
@@ -150,6 +153,15 @@ export function GroupedShoppingListCard({
     return a.name.localeCompare(b.name, 'ru')
   })
 
+  // Автоматически раскрываем категории с невыбранными товарами
+  useEffect(() => {
+    const categoriesWithUnpurchased = Object.values(groupedItems)
+      .filter(category => category.items.some(item => !item.purchased))
+      .map(category => category.id)
+
+    setExpandedCategories(new Set(categoriesWithUnpurchased))
+  }, [list.items])
+
   const handleMenuAction = (action: () => void) => {
     action()
     setShowDropdown(false)
@@ -198,7 +210,10 @@ export function GroupedShoppingListCard({
       {/* Заголовок списка */}
       <div
         className="p-4 md:p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors active:bg-zinc-100 dark:active:bg-zinc-700"
-        onClick={() => onToggle(list.id)}
+        onClick={() => {
+          haptics.tap()
+          onToggle(list.id)
+        }}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
@@ -252,6 +267,7 @@ export function GroupedShoppingListCard({
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
+                          haptics.tap()
                           handleMenuAction(() => onShare(list.id))
                         }}
                         className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm"
@@ -260,6 +276,22 @@ export function GroupedShoppingListCard({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                         </svg>
                         <span className="text-zinc-900 dark:text-zinc-50">Поделиться списком</span>
+                      </button>
+                    )}
+
+                    {list.isOwner && onSaveAsTemplate && items.length > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          haptics.tap()
+                          handleMenuAction(() => onSaveAsTemplate(list.id))
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm"
+                      >
+                        <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        <span className="text-zinc-900 dark:text-zinc-50">Сохранить как шаблон</span>
                       </button>
                     )}
 
@@ -451,11 +483,16 @@ export function GroupedShoppingListCard({
                                   ? 'bg-green-50 dark:bg-green-900/20'
                                   : 'bg-white dark:bg-zinc-800'
                               }`}
-                              onClick={() => !isToggling && !isEditing && onToggleItem(list.id, item.id)}
+                              onClick={() => {
+                                if (!isToggling && !isEditing) {
+                                  haptics.toggle()
+                                  onToggleItem(list.id, item.id)
+                                }
+                              }}
                             >
                               {/* Чекбокс */}
                               <div
-                                className={`flex-shrink-0 w-6 h-6 md:w-5 md:h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                                className={`flex-shrink-0 w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg border-2 flex items-center justify-center transition-colors ${
                                   item.purchased
                                     ? 'bg-green-500 border-green-500 text-white'
                                     : 'border-zinc-300 dark:border-zinc-600'
@@ -542,9 +579,10 @@ export function GroupedShoppingListCard({
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
+                                      haptics.tap()
                                       startEditing(item)
                                     }}
-                                    className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors active:scale-95 min-w-[40px] min-h-[40px] flex items-center justify-center flex-shrink-0"
+                                    className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
                                     title="Изменить количество"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -554,10 +592,11 @@ export function GroupedShoppingListCard({
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
+                                      haptics.delete()
                                       onDeleteItem(list.id, item.id)
                                     }}
                                     disabled={isDeleting}
-                                    className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[40px] min-h-[40px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {isDeleting ? (
                                       <div className="w-4 h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>

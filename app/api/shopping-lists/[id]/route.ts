@@ -57,7 +57,14 @@ export async function GET(
       }
     })
 
-    return NextResponse.json({ shoppingList })
+    // Добавляем флаг isOwner и isShared
+    const listWithFlags = {
+      ...shoppingList,
+      isOwner: shoppingList?.userId === userId,
+      isShared: shoppingList?.userId !== userId
+    }
+
+    return NextResponse.json({ shoppingList: listWithFlags })
 
   } catch (error) {
     console.error('Get shopping list error:', error)
