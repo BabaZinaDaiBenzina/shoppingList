@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { X, Plus, Edit, Trash2, Package } from "lucide-react"
+import { X, Plus, Edit, Trash2 } from "lucide-react"
 import { haptics } from "@/lib/utils/haptic"
 
 interface Category {
@@ -312,14 +312,17 @@ export function ProductManager({
                           haptics.tap()
                           setProductForm({ ...productForm, categoryId: cat.id })
                         }}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-center truncate ${
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex flex-col items-center justify-center gap-1 ${
                           productForm.categoryId === cat.id
                             ? 'bg-blue-600 text-white'
                             : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
                         }`}
                         title={cat.name}
                       >
-                        {cat.icon} {cat.name.length > 8 ? cat.name.slice(0, 6) + '..' : cat.name}
+                        <span className="text-xl leading-none">{cat.icon}</span>
+                        <span className="text-xs leading-tight truncate w-full text-center">
+                          {cat.name.length > 8 ? cat.name.slice(0, 6) + '..' : cat.name}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -422,7 +425,7 @@ export function ProductManager({
                           className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg"
                         >
                           <div className="flex items-center gap-2">
-                            <Package className="w-4 h-4 text-zinc-400" />
+                            <span className="text-lg">{category.icon}</span>
                             <div>
                               <div className="font-medium text-zinc-900 dark:text-zinc-50">
                                 {product.name}
