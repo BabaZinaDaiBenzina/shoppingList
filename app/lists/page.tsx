@@ -12,52 +12,15 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { TemplatesModal } from './components/TemplatesModal'
 import { SaveAsTemplateModal } from './components/SaveAsTemplateModal'
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { haptics } from '@/lib/utils/haptic'
 import { useOfflineData } from '@/hooks/useOfflineData'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { indexedDB } from '@/lib/services/indexedDB'
-
-interface Product {
-  id: string
-  name: string
-  unit: string | null
-  category: {
-    id: string
-    name: string
-    icon: string | null
-  }
-}
-
-interface Item {
-  id: string
-  name: string
-  quantity: number
-  unit: string | null
-  purchased: boolean
-  createdAt: string
-  product?: Product | null
-}
-
-interface ShoppingList {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  items: Item[]
-  isShared?: boolean
-  isOwner?: boolean
-  user?: {
-    id: string
-    username: string
-    name: string | null
-  }
-}
-
-interface Category {
-  id: string
-  name: string
-  icon: string | null
-}
+import { Product, Item, ShoppingList, Category } from '@/types'
 
 export default function ListsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
@@ -70,6 +33,7 @@ export default function ListsPage() {
   const [error, setError] = useState('')
   const [newListName, setNewListName] = useState('')
   const [expandedListId, setExpandedListId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'all' | 'mine' | 'shared'>('all')
   const [newItemNames, setNewItemNames] = useState<Record<string, string>>({})
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -849,7 +813,16 @@ export default function ListsPage() {
 
   // Фильтрация и сортировка товаров в списках
   const filteredShoppingLists = useMemo(() => {
-    return shoppingLists.map(list => {
+    // Сначала фильтруем списки по активной вкладке
+    let lists = shoppingLists
+
+    if (activeTab === 'mine') {
+      lists = lists.filter(list => list.isOwner !== false)
+    } else if (activeTab === 'shared') {
+      lists = lists.filter(list => list.isShared === true)
+    }
+
+    return lists.map(list => {
       let filteredItems = [...(list.items || [])]
 
       // Фильтр по поиску
@@ -889,7 +862,7 @@ export default function ListsPage() {
         items: filteredItems
       }
     })
-  }, [shoppingLists, searchQuery, categoryFilter, statusFilter, sortBy])
+  }, [shoppingLists, searchQuery, categoryFilter, statusFilter, sortBy, activeTab])
 
   // Loading state
   if (authLoading || isLoading) {
@@ -933,30 +906,36 @@ export default function ListsPage() {
               🛒 Списки покупок
             </h1>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="default"
+                size="default"
+                className="min-h-[48px] bg-purple-600 hover:bg-purple-700"
                 onClick={() => {
                   haptics.press()
                   setShowTemplatesModal(true)
                 }}
-                className="px-4 py-3 md:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
               >
-                <span>📋</span>
+                📋
                 <span className="hidden sm:inline">Шаблоны</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="default"
+                size="default"
+                className="min-h-[48px] bg-orange-600 hover:bg-orange-700"
                 onClick={() => setShowProductManager(true)}
-                className="px-4 py-3 md:py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
               >
-                <span>⚙️</span>
-                Управление
-              </button>
-              <button
+                ⚙️
+                <span className="hidden sm:inline">Управление</span>
+              </Button>
+              <Button
+                variant="default"
+                size="default"
+                className="min-h-[48px] bg-green-600 hover:bg-green-700"
                 onClick={() => setShowProductSelector(true)}
-                className="px-4 py-3 md:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 min-h-[48px] text-base md:text-sm"
               >
-                <span>📦</span>
-                Каталог
-              </button>
+                📦
+                <span className="hidden sm:inline">Каталог</span>
+              </Button>
             </div>
           </div>
 
@@ -967,19 +946,20 @@ export default function ListsPage() {
           )}
 
           <form onSubmit={createList} className="flex gap-2 md:gap-3">
-            <input
+            <Input
               ref={newListNameInputRef}
               type="text"
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="Название нового списка..."
               disabled={isCreatingList}
-              className="flex-1 min-w-0 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 min-w-0 min-h-[48px] text-base"
             />
-            <button
+            <Button
               type="submit"
               disabled={isCreatingList}
-              className="px-4 md:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              size="default"
+              className="min-h-[48px] whitespace-nowrap"
             >
               {isCreatingList ? (
                 <>
@@ -989,7 +969,7 @@ export default function ListsPage() {
               ) : (
                 'Создать'
               )}
-            </button>
+            </Button>
           </form>
         </div>
 
@@ -1010,49 +990,166 @@ export default function ListsPage() {
         )}
 
         {/* Списки */}
-        <div className="space-y-4">
-          {filteredShoppingLists.length === 0 && shoppingLists.length > 0 ? (
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8 md:p-12 text-center">
-              <div className="text-5xl md:text-6xl mb-4">🔍</div>
-              <h2 className="text-xl md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-                Ничего не найдено
-              </h2>
-              <p className="text-zinc-600 dark:text-zinc-400 text-base">
-                Попробуйте изменить параметры поиска или фильтры
-              </p>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'mine' | 'shared')} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              Все
+              <Badge variant="secondary" className="ml-1">
+                {shoppingLists.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="mine" className="flex items-center gap-2">
+              Мои
+              <Badge variant="secondary" className="ml-1">
+                {shoppingLists.filter(l => l.isOwner !== false).length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="shared" className="flex items-center gap-2">
+              Общие
+              <Badge variant="secondary" className="ml-1">
+                {shoppingLists.filter(l => l.isShared === true).length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="mt-0">
+            <div className="space-y-4">
+              {filteredShoppingLists.length === 0 && shoppingLists.length > 0 ? (
+                <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8 md:p-12 text-center">
+                  <div className="text-5xl md:text-6xl mb-4">🔍</div>
+                  <h2 className="text-xl md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+                    Ничего не найдено
+                  </h2>
+                  <p className="text-zinc-600 dark:text-zinc-400 text-base">
+                    Попробуйте изменить параметры поиска или фильтры
+                  </p>
+                </div>
+              ) : (
+                filteredShoppingLists.map((list) => (
+                  <GroupedShoppingListCard
+                    key={list.id}
+                    list={list}
+                    isExpanded={expandedListId === list.id}
+                    onToggle={(id) => setExpandedListId(expandedListId === id ? null : id)}
+                    onDelete={deleteList}
+                    onShare={list.isOwner ? (id) => setShareModalListId(id) : undefined}
+                    onSaveAsTemplate={list.isOwner ? (id) => setSaveAsTemplateListId(id) : undefined}
+                    onAddItem={addItem}
+                    onUpdateItem={updateItem}
+                    onToggleItem={toggleItem}
+                    onDeleteItem={deleteItem}
+                    onDeselectAll={deselectAll}
+                    newItemName={newItemNames[list.id] || ''}
+                    onItemNameChange={(id, name) =>
+                      setNewItemNames({ ...newItemNames, [id]: name })
+                    }
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    onCategoryChange={setSelectedCategoryId}
+                    isDeleting={isDeletingList[list.id]}
+                    isAddingItem={isAddingItem[list.id]}
+                    isUpdatingItem={isUpdatingItem}
+                    isTogglingItem={isTogglingItem}
+                    isDeletingItem={isDeletingItem}
+                    isDeselectAll={isDeselectAll[list.id]}
+                  />
+                ))
+              )}
             </div>
-          ) : (
-            filteredShoppingLists.map((list) => (
-              <GroupedShoppingListCard
-                key={list.id}
-                list={list}
-                isExpanded={expandedListId === list.id}
-                onToggle={(id) => setExpandedListId(expandedListId === id ? null : id)}
-                onDelete={deleteList}
-                onShare={list.isOwner ? (id) => setShareModalListId(id) : undefined}
-                onSaveAsTemplate={list.isOwner ? (id) => setSaveAsTemplateListId(id) : undefined}
-                onAddItem={addItem}
-                onUpdateItem={updateItem}
-                onToggleItem={toggleItem}
-                onDeleteItem={deleteItem}
-                onDeselectAll={deselectAll}
-                newItemName={newItemNames[list.id] || ''}
-                onItemNameChange={(id, name) =>
-                  setNewItemNames({ ...newItemNames, [id]: name })
-                }
-                categories={categories}
-                selectedCategoryId={selectedCategoryId}
-                onCategoryChange={setSelectedCategoryId}
-                isDeleting={isDeletingList[list.id]}
-                isAddingItem={isAddingItem[list.id]}
-                isUpdatingItem={isUpdatingItem}
-                isTogglingItem={isTogglingItem}
-                isDeletingItem={isDeletingItem}
-                isDeselectAll={isDeselectAll[list.id]}
-              />
-            ))
-          )}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="mine" className="mt-0">
+            <div className="space-y-4">
+              {filteredShoppingLists.length === 0 && shoppingLists.length > 0 ? (
+                <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8 md:p-12 text-center">
+                  <div className="text-5xl md:text-6xl mb-4">🔍</div>
+                  <h2 className="text-xl md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+                    Ничего не найдено
+                  </h2>
+                  <p className="text-zinc-600 dark:text-zinc-400 text-base">
+                    Попробуйте изменить параметры поиска или фильтры
+                  </p>
+                </div>
+              ) : (
+                filteredShoppingLists.map((list) => (
+                  <GroupedShoppingListCard
+                    key={list.id}
+                    list={list}
+                    isExpanded={expandedListId === list.id}
+                    onToggle={(id) => setExpandedListId(expandedListId === id ? null : id)}
+                    onDelete={deleteList}
+                    onShare={list.isOwner ? (id) => setShareModalListId(id) : undefined}
+                    onSaveAsTemplate={list.isOwner ? (id) => setSaveAsTemplateListId(id) : undefined}
+                    onAddItem={addItem}
+                    onUpdateItem={updateItem}
+                    onToggleItem={toggleItem}
+                    onDeleteItem={deleteItem}
+                    onDeselectAll={deselectAll}
+                    newItemName={newItemNames[list.id] || ''}
+                    onItemNameChange={(id, name) =>
+                      setNewItemNames({ ...newItemNames, [id]: name })
+                    }
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    onCategoryChange={setSelectedCategoryId}
+                    isDeleting={isDeletingList[list.id]}
+                    isAddingItem={isAddingItem[list.id]}
+                    isUpdatingItem={isUpdatingItem}
+                    isTogglingItem={isTogglingItem}
+                    isDeletingItem={isDeletingItem}
+                    isDeselectAll={isDeselectAll[list.id]}
+                  />
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="shared" className="mt-0">
+            <div className="space-y-4">
+              {filteredShoppingLists.length === 0 && shoppingLists.length > 0 ? (
+                <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8 md:p-12 text-center">
+                  <div className="text-5xl md:text-6xl mb-4">🔍</div>
+                  <h2 className="text-xl md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+                    Ничего не найдено
+                  </h2>
+                  <p className="text-zinc-600 dark:text-zinc-400 text-base">
+                    Попробуйте изменить параметры поиска или фильтры
+                  </p>
+                </div>
+              ) : (
+                filteredShoppingLists.map((list) => (
+                  <GroupedShoppingListCard
+                    key={list.id}
+                    list={list}
+                    isExpanded={expandedListId === list.id}
+                    onToggle={(id) => setExpandedListId(expandedListId === id ? null : id)}
+                    onDelete={deleteList}
+                    onShare={list.isOwner ? (id) => setShareModalListId(id) : undefined}
+                    onSaveAsTemplate={list.isOwner ? (id) => setSaveAsTemplateListId(id) : undefined}
+                    onAddItem={addItem}
+                    onUpdateItem={updateItem}
+                    onToggleItem={toggleItem}
+                    onDeleteItem={deleteItem}
+                    onDeselectAll={deselectAll}
+                    newItemName={newItemNames[list.id] || ''}
+                    onItemNameChange={(id, name) =>
+                      setNewItemNames({ ...newItemNames, [id]: name })
+                    }
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    onCategoryChange={setSelectedCategoryId}
+                    isDeleting={isDeletingList[list.id]}
+                    isAddingItem={isAddingItem[list.id]}
+                    isUpdatingItem={isUpdatingItem}
+                    isTogglingItem={isTogglingItem}
+                    isDeletingItem={isDeletingItem}
+                    isDeselectAll={isDeselectAll[list.id]}
+                  />
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Модальное окно обмена списком */}
         {shareModalListId && (

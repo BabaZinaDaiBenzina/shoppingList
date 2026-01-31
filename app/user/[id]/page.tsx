@@ -5,6 +5,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Switch } from "@/components/ui/switch";
+import { Moon, Sun } from "lucide-react";
 
 export default function UserProfilePage() {
   const { user: currentUser, isAuthenticated, isLoading, logout } = useAuth();
@@ -306,13 +308,9 @@ export default function UserProfilePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {theme === 'dark' ? (
-                <svg className="w-6 h-6 text-zinc-700 dark:text-zinc-300" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                </svg>
+                <Moon className="w-6 h-6 text-zinc-700 dark:text-zinc-300" />
               ) : (
-                <svg className="w-6 h-6 text-zinc-700 dark:text-zinc-300" fill="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <Sun className="w-6 h-6 text-zinc-700 dark:text-zinc-300" />
               )}
               <div>
                 <div className="font-medium text-zinc-900 dark:text-zinc-50">
@@ -323,26 +321,11 @@ export default function UserProfilePage() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={toggleTheme}
-              className="px-6 py-3 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors flex items-center gap-2 min-h-[48px]"
-            >
-              {theme === 'dark' ? (
-                <>
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                  Светлая
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                  </svg>
-                  Тёмная
-                </>
-              )}
-            </button>
+            <Switch
+              checked={theme === 'dark'}
+              onCheckedChange={toggleTheme}
+              className="data-[state=checked]:bg-blue-600"
+            />
           </div>
         </div>
 

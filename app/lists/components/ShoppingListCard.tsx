@@ -1,29 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-
-interface Item {
-  id: string
-  name: string
-  quantity: number
-  purchased: boolean
-}
-
-interface ShoppingList {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  items: Item[]
-  isShared?: boolean
-  isOwner?: boolean
-  purchasedCount?: number
-  user?: {
-    id: string
-    username: string
-    name: string | null
-  }
-}
+import { ShoppingList, Item } from '@/types'
 
 interface ShoppingListCardProps {
   list: ShoppingList

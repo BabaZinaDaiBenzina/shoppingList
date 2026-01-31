@@ -3,48 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { formatQuantity } from '@/lib/utils/pluralize'
 import { haptics } from '@/lib/utils/haptic'
-
-interface Product {
-  id: string
-  name: string
-  unit: string | null
-  category: {
-    id: string
-    name: string
-    icon: string | null
-  }
-}
-
-interface Item {
-  id: string
-  name: string
-  quantity: number
-  unit: string | null
-  purchased: boolean
-  product?: Product | null
-}
-
-interface ShoppingList {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  items: Item[]
-  isShared?: boolean
-  isOwner?: boolean
-  purchasedCount?: number
-  user?: {
-    id: string
-    username: string
-    name: string | null
-  }
-}
-
-interface Category {
-  id: string
-  name: string
-  icon: string | null
-}
+import { Badge } from '@/components/ui/badge'
+import { Product, Item, ShoppingList, Category } from '@/types'
 
 interface GroupedShoppingListCardProps {
   list: ShoppingList
@@ -228,9 +188,9 @@ export function GroupedShoppingListCard({
                   {list.name}
                 </h2>
                 {list.isShared && (
-                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full flex-shrink-0">
+                  <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
                     Общий
-                  </span>
+                  </Badge>
                 )}
               </div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -564,6 +524,11 @@ export function GroupedShoppingListCard({
                                     <span className="flex-1 text-sm md:text-base truncate text-zinc-900 dark:text-zinc-50">
                                       {item.name}
                                     </span>
+                                    {item.purchased && (
+                                      <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                                        ✓ Куплено
+                                      </Badge>
+                                    )}
                                     {(item.quantity > 1 || displayUnit) && (
                                       <span className="w-1/3 text-sm text-zinc-600 dark:text-zinc-400 text-right">
                                         {formatQuantity(item.quantity, displayUnit || null)}
