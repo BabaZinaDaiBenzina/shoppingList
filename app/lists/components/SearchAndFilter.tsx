@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, forwardRef, InputHTMLAttributes } from 'react'
 import { haptics } from '@/lib/utils/haptic'
 
 interface SearchAndFilterProps {
@@ -15,7 +15,7 @@ interface SearchAndFilterProps {
   categories: Array<{ id: string; name: string; icon: string | null }>
 }
 
-export function SearchAndFilter({
+function SearchAndFilterComponent({
   searchQuery,
   onSearchChange,
   categoryFilter,
@@ -25,7 +25,8 @@ export function SearchAndFilter({
   sortBy,
   onSortChange,
   categories,
-}: SearchAndFilterProps) {
+  searchInputRef
+}: SearchAndFilterProps & { searchInputRef?: React.Ref<HTMLInputElement> }) {
   const [showFilters, setShowFilters] = useState(false)
 
   return (
@@ -34,6 +35,7 @@ export function SearchAndFilter({
       <div className="flex gap-2 mb-3">
         <div className="flex-1 relative">
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -253,3 +255,7 @@ export function SearchAndFilter({
     </div>
   )
 }
+
+export const SearchAndFilter = forwardRef<HTMLInputElement, SearchAndFilterProps & { searchInputRef?: React.Ref<HTMLInputElement> }>(function SearchAndFilterWrapper(props, ref) {
+  return <SearchAndFilterComponent {...props} searchInputRef={ref} />
+})

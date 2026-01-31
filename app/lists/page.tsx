@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { GroupedShoppingListCard } from './components/GroupedShoppingListCard'
@@ -11,8 +11,10 @@ import { SearchAndFilter } from './components/SearchAndFilter'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { TemplatesModal } from './components/TemplatesModal'
 import { SaveAsTemplateModal } from './components/SaveAsTemplateModal'
+import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp'
 import { haptics } from '@/lib/utils/haptic'
 import { useOfflineData } from '@/hooks/useOfflineData'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { indexedDB } from '@/lib/services/indexedDB'
 
 interface Product {
@@ -97,6 +99,82 @@ export default function ListsPage() {
   // Confirm dialogs
   const [deleteListConfirm, setDeleteListConfirm] = useState<string | null>(null)
   const [deleteItemConfirm, setDeleteItemConfirm] = useState<{ listId: string; itemId: string } | null>(null)
+
+  // Refs for keyboard shortcuts
+  const newListNameInputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Проверка, есть ли открытые модальные окна
+  const hasOpenModal = shareModalListId !== null ||
+    showProductSelector ||
+    showProductManager ||
+    showTemplatesModal ||
+    saveAsTemplateListId !== null ||
+    deleteListConfirm !== null ||
+    deleteItemConfirm !== null
+
+  // Keyboard shortcuts
+  const { shortcuts } = useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: 'n',
+        ctrlKey: true,
+        action: () => {
+          if (hasOpenModal) return
+          haptics.tap()
+          newListNameInputRef.current?.focus()
+        },
+        description: 'Новый список'
+      },
+      {
+        key: 'f',
+        ctrlKey: true,
+        action: () => {
+          if (hasOpenModal) return
+          haptics.tap()
+          searchInputRef.current?.focus()
+        },
+        description: 'Поиск товаров'
+      },
+      {
+        key: 'Escape',
+        action: () => {
+          // Закрыть все модальные окна
+          if (shareModalListId) setShareModalListId(null)
+          if (showProductSelector) setShowProductSelector(false)
+          if (showProductManager) setShowProductManager(false)
+          if (showTemplatesModal) setShowTemplatesModal(false)
+          if (saveAsTemplateListId) setSaveAsTemplateListId(null)
+          if (deleteListConfirm) setDeleteListConfirm(null)
+          if (deleteItemConfirm) setDeleteItemConfirm(null)
+
+          // Свернуть раскрытый список
+          if (expandedListId) {
+            setExpandedListId(null)
+          }
+
+          haptics.tap()
+        },
+        description: 'Закрыть модалку / свернуть список'
+      },
+      {
+        key: 'Enter',
+        action: () => {
+          // Добавить товар, если есть раскрытый список и введено название
+          if (expandedListId && !hasOpenModal) {
+            const itemName = newItemNames[expandedListId]
+            if (itemName?.trim()) {
+              addItem(expandedListId, itemName)
+              setNewItemNames(prev => ({ ...prev, [expandedListId]: '' }))
+            }
+          }
+        },
+        description: 'Добавить товар (если список открыт)',
+        disabled: true // Отключаем, так как это работает только в специфических условиях
+      }
+    ],
+    enabled: true
+  })
 
   // Effects
   useEffect(() => {
@@ -890,6 +968,7 @@ export default function ListsPage() {
 
           <form onSubmit={createList} className="flex gap-2 md:gap-3">
             <input
+              ref={newListNameInputRef}
               type="text"
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
@@ -917,6 +996,7 @@ export default function ListsPage() {
         {/* Поиск и фильтры - показываем только если есть списки */}
         {shoppingLists.length > 0 && expandedListId && (
           <SearchAndFilter
+            ref={searchInputRef}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             categoryFilter={categoryFilter}
@@ -1047,6 +1127,13 @@ export default function ListsPage() {
           />
         )}
       </div>
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp shortcuts={shortcuts.map(s => ({
+        key: s.ctrlKey ? `Ctrl+${s.key.toUpperCase()}` : s.key,
+        description: s.description,
+        ctrl: s.ctrlKey
+      }))} />
     </div>
   )
 }
