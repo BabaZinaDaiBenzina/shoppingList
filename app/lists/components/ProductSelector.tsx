@@ -162,7 +162,7 @@ export function ProductSelector({
 
         {/* Категории (показываем только если нет поиска) */}
         {!searchQuery && (
-          <div className="max-h-[125px] overflow-y-auto">
+          <div className="min-h-[125px] overflow-y-auto">
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pb-2">
               <Button
                 variant={selectedCategory === null ? "default" : "outline"}
@@ -184,16 +184,18 @@ export function ProductSelector({
                 return (
                   <Button
                     key={category.id}
-                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    variant={
+                      selectedCategory === category.id ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => {
                       haptics.tap();
                       setSelectedCategory(category.id);
                     }}
-                    className="w-full truncate"
+                    className="w-full truncate justify-start"
                     title={category.name}
                   >
-                    {category.icon} {displayName}
+                    <span className="mr-1">{category.icon}</span> {displayName}
                   </Button>
                 );
               })}
@@ -234,7 +236,8 @@ export function ProductSelector({
                           {product.name}
                         </div>
                         <div className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-1">
-                          {product.category.icon} {product.category.name}
+                          <span className="ml-1">{product.category.icon}</span>{" "}
+                          {product.category.name}
                         </div>
                       </div>
                       {isInList ? (
