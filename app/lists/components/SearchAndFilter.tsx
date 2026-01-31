@@ -2,6 +2,13 @@
 
 import { useState, forwardRef, InputHTMLAttributes } from 'react'
 import { haptics } from '@/lib/utils/haptic'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface SearchAndFilterProps {
   searchQuery: string
@@ -84,18 +91,22 @@ function SearchAndFilterComponent({
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
               Категория
             </label>
-            <select
+            <Select
               value={categoryFilter || 'all'}
-              onChange={(e) => onCategoryChange(e.target.value === 'all' ? null : e.target.value)}
-              className="w-full px-4 py-2 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+              onValueChange={(value) => onCategoryChange(value === 'all' ? null : value)}
             >
-              <option value="all">Все категории</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.icon} {category.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Все категории" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все категории</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.icon} {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Фильтр по статусу */}

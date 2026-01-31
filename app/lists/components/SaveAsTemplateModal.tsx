@@ -1,7 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { haptics } from '@/lib/utils/haptic'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { haptics } from "@/lib/utils/haptic"
 
 interface SaveAsTemplateModalProps {
   isOpen: boolean
@@ -40,39 +50,30 @@ export function SaveAsTemplateModal({
       setTemplateName('')
       setDescription('')
     } catch (err) {
+      haptics.error()
       setError(err instanceof Error ? err.message : 'Ошибка при сохранении шаблона')
     } finally {
       setIsSaving(false)
     }
   }
 
-  if (!isOpen) return null
+  const handleClose = () => {
+    haptics.tap()
+    onClose()
+  }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-      {/* Dialog */}
-      <div
-        className="relative bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            💾 Сохранить как шаблон
-          </h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-1 text-sm">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>💾 Сохранить как шаблон</DialogTitle>
+          <DialogDescription>
             Сохраните товары из списка "{listName}" как шаблон для будущего использования
-          </p>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
               <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
@@ -106,7 +107,7 @@ export function SaveAsTemplateModal({
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
               Название шаблона <span className="text-red-500">*</span>
             </label>
-            <input
+            <Input
               type="text"
               value={templateName}
               onChange={(e) => {
@@ -114,7 +115,6 @@ export function SaveAsTemplateModal({
                 setTemplateName(e.target.value)
               }}
               placeholder="Например: Еженедельные покупки"
-              className="w-full px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
             />
           </div>
 
@@ -123,45 +123,43 @@ export function SaveAsTemplateModal({
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
               Описание (необязательно)
             </label>
-            <textarea
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Заметки о том, для чего этот шаблон..."
               rows={3}
-              className="w-full px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white resize-none"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-zinc-200 dark:border-zinc-700">
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              disabled={isSaving}
-              className="flex-1 px-4 py-3 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Отмена
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!templateName.trim() || isSaving}
-              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  <span>Сохранение...</span>
-                </>
-              ) : (
-                <>
-                  <span>💾 Сохранить</span>
-                </>
-              )}
-            </button>
-          </div>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={isSaving}
+            className="flex-1"
+          >
+            Отмена
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!templateName.trim() || isSaving}
+            className="flex-1"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <span>Сохранение...</span>
+              </>
+            ) : (
+              <>
+                <span>💾 Сохранить</span>
+              </>
+            )}
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

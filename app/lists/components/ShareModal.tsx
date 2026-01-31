@@ -1,6 +1,17 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { X } from "lucide-react"
+import { haptics } from "@/lib/utils/haptic"
 
 interface User {
   id: string
@@ -75,9 +86,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
   const fetchShares = async () => {
     setIsLoadingShares(true)
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/share`)
-
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списка')
 
@@ -92,9 +101,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
   const searchUsers = async (query: string) => {
     setIsSearching(true)
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
-
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при поиске')
 
@@ -115,7 +122,6 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
     if (!selectedUser) return
 
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/share`, {
         method: 'POST',
         headers: {
@@ -127,21 +133,22 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при предоставлении доступа')
 
-      // Добавляем нового пользователя в список
+      haptics.success()
       setShares([data.share, ...shares])
       setSearchQuery('')
       setSearchResults([])
       setSelectedUser(null)
     } catch (err) {
+      haptics.error()
       alert(err instanceof Error ? err.message : 'Ошибка при предоставлении доступа')
     }
   }
 
   const removeShare = async (shareId: string, userId: string) => {
+    haptics.tap()
     if (!confirm('Вы уверены, что хотите отменить доступ к списку?')) return
 
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(`/api/shopping-lists/${listId}/share?userId=${userId}`, {
         method: 'DELETE',
       })
@@ -151,53 +158,43 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
         throw new Error(data.error || 'Ошибка при удалении доступа')
       }
 
+      haptics.success()
       setShares(shares.filter(s => s.id !== shareId))
     } catch (err) {
+      haptics.error()
       alert(err instanceof Error ? err.message : 'Ошибка при удалении доступа')
     }
   }
 
-  if (!isOpen) return null
+  const handleClose = () => {
+    haptics.tap()
+    onClose()
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Заголовок */}
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-                Поделиться списком
-              </h2>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 truncate">
-                "{listName}"
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-            >
-              <svg className="w-6 h-6 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Поделиться списком</DialogTitle>
+          <DialogDescription className="truncate">
+            "{listName}"
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Контент */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-6">
           {/* Поиск пользователей */}
           <div className="space-y-3" ref={dropdownRef}>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Добавить пользователя
             </label>
             <div className="relative">
-              <input
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Введите имя или username..."
-                className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+                className="pr-10"
               />
               {isSearching && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -212,6 +209,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
                     <button
                       key={user.id}
                       onClick={() => {
+                        haptics.tap()
                         setSelectedUser(user)
                         setSearchQuery(user.name || user.username)
                         setSearchResults([])
@@ -234,12 +232,12 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
 
             {/* Кнопка поделиться */}
             {selectedUser && (
-              <button
+              <Button
                 onClick={shareList}
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="w-full"
               >
                 Поделиться с {selectedUser.name || selectedUser.username}
-              </button>
+              </Button>
             )}
           </div>
 
@@ -277,22 +275,22 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
                         {new Date(share.createdAt).toLocaleDateString('ru-RU')}
                       </div>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => removeShare(share.id, share.user.id)}
-                      className="ml-3 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      className="ml-3 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       title="Удалить доступ"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
