@@ -33,6 +33,9 @@ export interface ShoppingList {
     username: string
     name: string | null
   }
+  _count?: {
+    items: number
+  }
 }
 
 export interface Category {

@@ -294,7 +294,10 @@ export function ProductSelector({
 
                         {/* Unit */}
                         <div className="text-sm text-zinc-600 dark:text-zinc-400 px-2 py-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-600 flex-shrink-0 min-w-[60px] h-9 flex items-center justify-center">
-                          {formatQuantity(quantity, product.unit || "шт")}
+                          {formatQuantity(
+                            quantity,
+                            product.unit?.toLocaleLowerCase() || "шт",
+                          )}
                         </div>
 
                         {/* Кнопка добавления */}

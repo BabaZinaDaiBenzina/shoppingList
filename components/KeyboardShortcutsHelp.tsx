@@ -29,7 +29,7 @@ export function KeyboardShortcutsHelp({ shortcuts }: KeyboardShortcutsHelpProps)
         <Button
           variant="secondary"
           size="icon"
-          className="fixed bottom-6 left-6 z-50 h-12 w-12 rounded-full shadow-lg"
+          className="hidden md:flex fixed bottom-6 left-6 z-50 h-12 w-12 rounded-full shadow-lg"
           onClick={() => haptics.tap()}
         >
           <BookOpen className="h-5 w-5" />

@@ -1,25 +1,25 @@
-'use client'
+"use client";
 
-import { useState, useRef, useEffect } from 'react'
-import { ShoppingList, Item } from '@/types'
+import { useState, useRef, useEffect } from "react";
+import { ShoppingList } from "@/types";
 
 interface ShoppingListCardProps {
-  list: ShoppingList
-  isExpanded: boolean
-  onToggle: (listId: string) => void
-  onDelete: (listId: string) => void
-  onShare?: (listId: string) => void
-  onAddItem: (listId: string, itemName: string) => void
-  onToggleItem: (listId: string, itemId: string) => void
-  onDeleteItem: (listId: string, itemId: string) => void
-  onDeselectAll: (listId: string) => void
-  newItemName: string
-  onItemNameChange: (listId: string, name: string) => void
-  isDeleting?: boolean
-  isAddingItem?: boolean
-  isTogglingItem?: Record<string, boolean>
-  isDeletingItem?: Record<string, boolean>
-  isDeselectAll?: boolean
+  list: ShoppingList;
+  isExpanded: boolean;
+  onToggle: (listId: string) => void;
+  onDelete: (listId: string) => void;
+  onShare?: (listId: string) => void;
+  onAddItem: (listId: string, itemName: string) => void;
+  onToggleItem: (listId: string, itemId: string) => void;
+  onDeleteItem: (listId: string, itemId: string) => void;
+  onDeselectAll: (listId: string) => void;
+  newItemName: string;
+  onItemNameChange: (listId: string, name: string) => void;
+  isDeleting?: boolean;
+  isAddingItem?: boolean;
+  isTogglingItem?: Record<string, boolean>;
+  isDeletingItem?: Record<string, boolean>;
+  isDeselectAll?: boolean;
 }
 
 export function ShoppingListCard({
@@ -40,41 +40,48 @@ export function ShoppingListCard({
   isDeletingItem = {},
   isDeselectAll = false,
 }: ShoppingListCardProps) {
-  const [showDropdown, setShowDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const items = list.items || []
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const items = list.items || [];
 
   // Используем purchasedCount из API если товары не загружены, иначе считаем из items
-  const totalItems = items.length > 0 ? items.length : (list as any)._count?.items || 0
-  const purchasedCount = items.length > 0
-    ? items.filter(i => i.purchased).length
-    : (list.purchasedCount ?? 0)
+  const totalItems =
+    items.length > 0 ? items.length : list._count?.items || 0;
+  const purchasedCount =
+    items.length > 0
+      ? items.filter((i) => i.purchased).length
+      : (list.purchasedCount ?? 0);
 
   // Закрыть дропдаун при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false)
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Сортируем товары: сначала не купленные, потом купленные
   const sortedItems = [...items].sort((a, b) => {
-    if (a.purchased === b.purchased) return 0
-    return a.purchased ? 1 : -1
-  })
+    if (a.purchased === b.purchased) return 0;
+    return a.purchased ? 1 : -1;
+  });
 
   const handleMenuAction = (action: () => void) => {
-    action()
-    setShowDropdown(false)
-  }
+    action();
+    setShowDropdown(false);
+  };
 
   return (
-    <div className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden ${list.isShared ? 'ring-2 ring-purple-500' : ''}`}>
+    <div
+      className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden ${list.isShared ? "ring-2 ring-purple-500" : ""}`}
+    >
       {/* Заголовок списка */}
       <div
         className="p-4 md:p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors active:bg-zinc-100 dark:active:bg-zinc-700"
@@ -82,9 +89,13 @@ export function ShoppingListCard({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-            <div className={`w-12 h-12 md:w-12 md:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center text-white text-lg md:text-xl font-bold flex-shrink-0 ${
-              list.isShared ? 'from-purple-500 to-pink-600' : 'from-blue-500 to-purple-600'
-            }`}>
+            <div
+              className={`w-12 h-12 md:w-12 md:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center text-white text-lg md:text-xl font-bold flex-shrink-0 ${
+                list.isShared
+                  ? "from-purple-500 to-pink-600"
+                  : "from-blue-500 to-purple-600"
+              }`}
+            >
               {purchasedCount}/{totalItems}
             </div>
             <div className="flex-1 min-w-0">
@@ -99,7 +110,8 @@ export function ShoppingListCard({
                 )}
               </div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                {totalItems} товаров • {new Date(list.updatedAt).toLocaleDateString('ru-RU')}
+                {totalItems} товаров •{" "}
+                {new Date(list.updatedAt).toLocaleDateString("ru-RU")}
                 {list.isShared && list.user && (
                   <> • {list.user.name || list.user.username}</>
                 )}
@@ -112,13 +124,17 @@ export function ShoppingListCard({
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    setShowDropdown(!showDropdown)
+                    e.stopPropagation();
+                    setShowDropdown(!showDropdown);
                   }}
                   className="p-3 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label="Меню"
                 >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-6 h-6"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <circle cx="12" cy="5" r="1.5" />
                     <circle cx="12" cy="12" r="1.5" />
                     <circle cx="12" cy="19" r="1.5" />
@@ -131,23 +147,35 @@ export function ShoppingListCard({
                     {list.isOwner && onShare && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          handleMenuAction(() => onShare(list.id))
+                          e.stopPropagation();
+                          handleMenuAction(() => onShare(list.id));
                         }}
                         className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm"
                       >
-                        <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        <svg
+                          className="w-5 h-5 text-purple-600 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                          />
                         </svg>
-                        <span className="text-zinc-900 dark:text-zinc-50">Поделиться списком</span>
+                        <span className="text-zinc-900 dark:text-zinc-50">
+                          Поделиться списком
+                        </span>
                       </button>
                     )}
 
                     {purchasedCount > 0 && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          handleMenuAction(() => onDeselectAll(list.id))
+                          e.stopPropagation();
+                          handleMenuAction(() => onDeselectAll(list.id));
                         }}
                         disabled={isDeselectAll}
                         className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -155,19 +183,33 @@ export function ShoppingListCard({
                         {isDeselectAll ? (
                           <div className="w-5 h-5 flex-shrink-0 animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></div>
                         ) : (
-                          <svg className="w-5 h-5 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-5 h-5 text-orange-600 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         )}
-                        <span className="text-zinc-900 dark:text-zinc-50">{isDeselectAll ? 'Снятие...' : `Снять выделение (${purchasedCount})`}</span>
+                        <span className="text-zinc-900 dark:text-zinc-50">
+                          {isDeselectAll
+                            ? "Снятие..."
+                            : `Снять выделение (${purchasedCount})`}
+                        </span>
                       </button>
                     )}
 
                     {list.isOwner && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          handleMenuAction(() => onDelete(list.id))
+                          e.stopPropagation();
+                          handleMenuAction(() => onDelete(list.id));
                         }}
                         disabled={isDeleting}
                         className="w-full px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3 text-sm text-red-600 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -175,11 +217,23 @@ export function ShoppingListCard({
                         {isDeleting ? (
                           <div className="w-5 h-5 flex-shrink-0 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
                         ) : (
-                          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="w-5 h-5 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         )}
-                        <span>{isDeleting ? 'Удаление...' : 'Удалить список'}</span>
+                        <span>
+                          {isDeleting ? "Удаление..." : "Удалить список"}
+                        </span>
                       </button>
                     )}
                   </div>
@@ -189,13 +243,18 @@ export function ShoppingListCard({
 
             <svg
               className={`w-5 h-5 text-zinc-400 transition-transform ${
-                isExpanded ? 'rotate-180' : ''
+                isExpanded ? "rotate-180" : ""
               }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         </div>
@@ -211,9 +270,9 @@ export function ShoppingListCard({
               value={newItemName}
               onChange={(e) => onItemNameChange(list.id, e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  onAddItem(list.id, newItemName)
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onAddItem(list.id, newItemName);
                 }
               }}
               placeholder="Добавить товар..."
@@ -231,7 +290,7 @@ export function ShoppingListCard({
                   <span>Добавление...</span>
                 </>
               ) : (
-                'Добавить'
+                "Добавить"
               )}
             </button>
           </div>
@@ -244,57 +303,69 @@ export function ShoppingListCard({
           ) : (
             <div className="space-y-2">
               {sortedItems.map((item) => {
-                const itemKey = `${list.id}-${item.id}`
-                const isToggling = isTogglingItem[itemKey]
-                const isDeleting = isDeletingItem[itemKey]
+                const itemKey = `${list.id}-${item.id}`;
+                const isToggling = isTogglingItem[itemKey];
+                const isDeleting = isDeletingItem[itemKey];
 
                 return (
                   <div
                     key={item.id}
                     className={`flex items-center gap-3 p-3 md:p-4 rounded-lg transition-colors ${
-                      isToggling ? 'opacity-50 cursor-wait' : 'cursor-pointer'
+                      isToggling ? "opacity-50 cursor-wait" : "cursor-pointer"
                     } ${
                       item.purchased
-                        ? 'bg-green-50 dark:bg-green-900/20'
-                        : 'bg-zinc-50 dark:bg-zinc-700/50'
+                        ? "bg-green-50 dark:bg-green-900/20"
+                        : "bg-zinc-50 dark:bg-zinc-700/50"
                     }`}
-                    onClick={() => !isToggling && onToggleItem(list.id, item.id)}
+                    onClick={() =>
+                      !isToggling && onToggleItem(list.id, item.id)
+                    }
                   >
                     <div
                       className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
                         item.purchased
-                          ? 'bg-green-500 border-green-500 text-white'
-                          : 'border-zinc-300 dark:border-zinc-600'
+                          ? "bg-green-500 border-green-500 text-white"
+                          : "border-zinc-300 dark:border-zinc-600"
                       }`}
                     >
                       {isToggling ? (
                         <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
                       ) : item.purchased ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                       ) : null}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
                       <span
-                        className={`text-base md:text-sm block truncate ${
+                        className={`text-base md:text-sm truncate ${
                           item.purchased
-                            ? 'line-through text-zinc-500 dark:text-zinc-400'
-                            : 'text-zinc-900 dark:text-zinc-50'
+                            ? "line-through text-zinc-500 dark:text-zinc-400"
+                            : "text-zinc-900 dark:text-zinc-50"
                         }`}
                       >
                         {item.name}
                       </span>
                       {item.quantity > 1 && (
-                        <span className="ml-2 text-sm text-zinc-500 dark:text-zinc-400">
+                        <span className="flex-shrink-0 text-sm text-zinc-500 dark:text-zinc-400">
                           ×{item.quantity}
                         </span>
                       )}
                     </div>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteItem(list.id, item.id)
+                        e.stopPropagation();
+                        onDeleteItem(list.id, item.id);
                       }}
                       disabled={isDeleting}
                       className="p-3 md:p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -302,18 +373,28 @@ export function ShoppingListCard({
                       {isDeleting ? (
                         <div className="w-5 h-5 md:w-4 md:h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
                       ) : (
-                        <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="w-5 h-5 md:w-4 md:h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       )}
                     </button>
                   </div>
-                )
+                );
               })}
             </div>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }
