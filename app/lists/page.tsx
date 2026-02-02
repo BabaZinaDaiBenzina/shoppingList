@@ -306,6 +306,8 @@ export default function ListsPage() {
   // Fetch individual list with items (for expand)
   const fetchListItems = useCallback(
     async (listId: string) => {
+      if (!isAuthenticated) return;
+
       try {
         const response = await fetch(`/api/shopping-lists/${listId}`);
         const data = await response.json();
@@ -327,7 +329,7 @@ export default function ListsPage() {
         );
       }
     },
-    [saveOfflineList],
+    [saveOfflineList, isAuthenticated],
   );
 
   // Fetch list items when expanded (lazy loading)
@@ -1034,40 +1036,41 @@ export default function ListsPage() {
       <div className="max-w-4xl mx-auto">
         {/* Заголовок и форма создания */}
         <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-4 md:p-6 mb-4 md:mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-              🛒 Списки покупок
+          <div className="flex items-center justify-between gap-3 mb-4 md:mb-6">
+            <h1 className="text-xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+              🛒{" "}
+              <span className="hidden min-[400px]:inline">Списки покупок</span>
             </h1>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0">
               <Button
                 variant="default"
                 size="default"
-                className="min-h-[48px] bg-purple-600 hover:bg-purple-700"
+                className="min-h-[44px] h-11 px-3 bg-green-600 hover:bg-green-700"
+                onClick={() => setShowProductSelector(true)}
+              >
+                📦
+                <span className="hidden sm:inline ml-1">Каталог</span>
+              </Button>
+              <Button
+                variant="default"
+                size="default"
+                className="min-h-[44px] h-11 px-3 bg-orange-600 hover:bg-orange-700"
+                onClick={() => setShowProductManager(true)}
+              >
+                ⚙️
+                <span className="hidden sm:inline ml-1">Управление</span>
+              </Button>
+              <Button
+                variant="default"
+                size="default"
+                className="min-h-[44px] h-11 px-3 bg-purple-600 hover:bg-purple-700"
                 onClick={() => {
                   haptics.press();
                   setShowTemplatesModal(true);
                 }}
               >
                 📋
-                <span className="hidden sm:inline">Шаблоны</span>
-              </Button>
-              <Button
-                variant="default"
-                size="default"
-                className="min-h-[48px] bg-orange-600 hover:bg-orange-700"
-                onClick={() => setShowProductManager(true)}
-              >
-                ⚙️
-                <span className="hidden sm:inline">Управление</span>
-              </Button>
-              <Button
-                variant="default"
-                size="default"
-                className="min-h-[48px] bg-green-600 hover:bg-green-700"
-                onClick={() => setShowProductSelector(true)}
-              >
-                📦
-                <span className="hidden sm:inline">Каталог</span>
+                <span className="hidden sm:inline ml-1">Шаблоны</span>
               </Button>
             </div>
           </div>
@@ -1108,18 +1111,20 @@ export default function ListsPage() {
 
         {/* Поиск и фильтры - показываем только если есть списки */}
         {shoppingLists.length > 0 && expandedListId && (
-          <SearchAndFilter
-            ref={searchInputRef}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            categoryFilter={categoryFilter}
-            onCategoryChange={setCategoryFilter}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            categories={categories}
-          />
+          <div className="hidden md:block">
+            <SearchAndFilter
+              ref={searchInputRef}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              categoryFilter={categoryFilter}
+              onCategoryChange={setCategoryFilter}
+              statusFilter={statusFilter}
+              onStatusChange={setStatusFilter}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              categories={categories}
+            />
+          </div>
         )}
 
         {/* Списки */}

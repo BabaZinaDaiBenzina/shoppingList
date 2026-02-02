@@ -1,231 +1,236 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { X, Plus, Edit, Trash2 } from "lucide-react"
-import { haptics } from "@/lib/utils/haptic"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { X, Plus, Edit, Trash2 } from "lucide-react";
+import { haptics } from "@/lib/utils/haptic";
 
 interface Category {
-  id: string
-  name: string
-  icon: string | null
-  sortOrder: number
-  products?: Product[]
+  id: string;
+  name: string;
+  icon: string | null;
+  sortOrder: number;
+  products?: Product[];
 }
 
 interface Product {
-  id: string
-  name: string
-  unit: string | null
-  categoryId: string
+  id: string;
+  name: string;
+  unit: string | null;
+  categoryId: string;
 }
 
 interface ProductManagerProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function ProductManager({
-  isOpen,
-  onClose,
-}: ProductManagerProps) {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+export function ProductManager({ isOpen, onClose }: ProductManagerProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Forms
-  const [showCategoryForm, setShowCategoryForm] = useState(false)
-  const [showProductForm, setShowProductForm] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const [categoryForm, setCategoryForm] = useState({ name: '', icon: '', sortOrder: 0 })
-  const [productForm, setProductForm] = useState({ name: '', categoryId: '', unit: '' })
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    icon: "",
+    sortOrder: 0,
+  });
+  const [productForm, setProductForm] = useState({
+    name: "",
+    categoryId: "",
+    unit: "",
+  });
 
   // Загрузка категорий при открытии
   useEffect(() => {
     if (isOpen) {
-      fetchCategories()
+      fetchCategories();
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const fetchCategories = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const response = await fetch('/api/categories/admin')
-      const data = await response.json()
+      const response = await fetch("/api/categories/admin");
+      const data = await response.json();
       if (response.ok) {
-        setCategories(data.categories)
+        setCategories(data.categories);
       } else {
-        setError(data.error || 'Ошибка загрузки')
+        setError(data.error || "Ошибка загрузки");
       }
-    } catch (err) {
-      setError('Ошибка загрузки категорий')
+    } catch {
+      setError("Ошибка загрузки категорий");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const resetCategoryForm = () => {
-    setCategoryForm({ name: '', icon: '', sortOrder: 0 })
-    setEditingCategory(null)
-    setShowCategoryForm(false)
-  }
+    setCategoryForm({ name: "", icon: "", sortOrder: 0 });
+    setEditingCategory(null);
+    setShowCategoryForm(false);
+  };
 
   const resetProductForm = () => {
-    setProductForm({ name: '', categoryId: '', unit: '' })
-    setEditingProduct(null)
-    setShowProductForm(false)
-  }
+    setProductForm({ name: "", categoryId: "", unit: "" });
+    setEditingProduct(null);
+    setShowProductForm(false);
+  };
 
   const startEditCategory = (category: Category) => {
-    haptics.tap()
-    setEditingCategory(category)
+    haptics.tap();
+    setEditingCategory(category);
     setCategoryForm({
       name: category.name,
-      icon: category.icon || '',
-      sortOrder: category.sortOrder
-    })
-    setShowCategoryForm(true)
-    setShowProductForm(false)
-  }
+      icon: category.icon || "",
+      sortOrder: category.sortOrder,
+    });
+    setShowCategoryForm(true);
+    setShowProductForm(false);
+  };
 
   const startEditProduct = (product: Product) => {
-    haptics.tap()
-    setEditingProduct(product)
+    haptics.tap();
+    setEditingProduct(product);
     setProductForm({
       name: product.name,
       categoryId: product.categoryId,
-      unit: product.unit || ''
-    })
-    setShowProductForm(true)
-    setShowCategoryForm(false)
-  }
+      unit: product.unit || "",
+    });
+    setShowProductForm(true);
+    setShowCategoryForm(false);
+  };
 
   const startAddProduct = (categoryId: string) => {
-    haptics.tap()
-    setEditingProduct(null)
-    setProductForm({ name: '', categoryId, unit: '' })
-    setShowProductForm(true)
-    setShowCategoryForm(false)
-  }
+    haptics.tap();
+    setEditingProduct(null);
+    setProductForm({ name: "", categoryId, unit: "" });
+    setShowProductForm(true);
+    setShowCategoryForm(false);
+  };
 
   const saveCategory = async () => {
-    setError('')
+    setError("");
     try {
       const url = editingCategory
         ? `/api/categories/admin/${editingCategory.id}`
-        : '/api/categories/admin'
+        : "/api/categories/admin";
 
       const response = await fetch(url, {
-        method: editingCategory ? 'PUT' : 'POST',
+        method: editingCategory ? "PUT" : "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(categoryForm),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Ошибка сохранения')
+        throw new Error(data.error || "Ошибка сохранения");
       }
 
-      haptics.success()
-      await fetchCategories()
-      resetCategoryForm()
+      haptics.success();
+      await fetchCategories();
+      resetCategoryForm();
     } catch (err) {
-      haptics.error()
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения')
+      haptics.error();
+      setError(err instanceof Error ? err.message : "Ошибка сохранения");
     }
-  }
+  };
 
   const deleteCategory = async (categoryId: string) => {
-    haptics.tap()
-    if (!confirm('Вы уверены, что хотите удалить категорию?')) return
+    haptics.tap();
+    if (!confirm("Вы уверены, что хотите удалить категорию?")) return;
 
-    setError('')
+    setError("");
     try {
       const response = await fetch(`/api/categories/admin/${categoryId}`, {
-        method: 'DELETE',
-      })
+        method: "DELETE",
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Ошибка удаления')
+        throw new Error(data.error || "Ошибка удаления");
       }
 
-      haptics.success()
-      await fetchCategories()
+      haptics.success();
+      await fetchCategories();
     } catch (err) {
-      haptics.error()
-      setError(err instanceof Error ? err.message : 'Ошибка удаления')
+      haptics.error();
+      setError(err instanceof Error ? err.message : "Ошибка удаления");
     }
-  }
+  };
 
   const saveProduct = async () => {
-    setError('')
+    setError("");
     try {
       const url = editingProduct
         ? `/api/products/admin/${editingProduct.id}`
-        : '/api/products/admin'
+        : "/api/products/admin";
 
       const response = await fetch(url, {
-        method: editingProduct ? 'PUT' : 'POST',
+        method: editingProduct ? "PUT" : "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(productForm),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Ошибка сохранения')
+        throw new Error(data.error || "Ошибка сохранения");
       }
 
-      haptics.success()
-      await fetchCategories()
-      resetProductForm()
+      haptics.success();
+      await fetchCategories();
+      resetProductForm();
     } catch (err) {
-      haptics.error()
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения')
+      haptics.error();
+      setError(err instanceof Error ? err.message : "Ошибка сохранения");
     }
-  }
+  };
 
   const deleteProduct = async (productId: string) => {
-    haptics.tap()
-    if (!confirm('Вы уверены, что хотите удалить продукт?')) return
+    haptics.tap();
+    if (!confirm("Вы уверены, что хотите удалить продукт?")) return;
 
-    setError('')
+    setError("");
     try {
       const response = await fetch(`/api/products/admin/${productId}`, {
-        method: 'DELETE',
-      })
+        method: "DELETE",
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Ошибка удаления')
+        throw new Error(data.error || "Ошибка удаления");
       }
 
-      haptics.success()
-      await fetchCategories()
+      haptics.success();
+      await fetchCategories();
     } catch (err) {
-      haptics.error()
-      setError(err instanceof Error ? err.message : 'Ошибка удаления')
+      haptics.error();
+      setError(err instanceof Error ? err.message : "Ошибка удаления");
     }
-  }
+  };
 
   const handleClose = () => {
-    haptics.tap()
-    onClose()
-  }
+    haptics.tap();
+    onClose();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -248,9 +253,9 @@ export function ProductManager({
         {!showCategoryForm && !showProductForm && (
           <Button
             onClick={() => {
-              haptics.tap()
-              resetCategoryForm()
-              setShowCategoryForm(true)
+              haptics.tap();
+              resetCategoryForm();
+              setShowCategoryForm(true);
             }}
             className="w-full sm:w-auto"
           >
@@ -263,19 +268,23 @@ export function ProductManager({
         {showCategoryForm && (
           <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg">
             <h3 className="font-semibold mb-3 text-zinc-900 dark:text-zinc-50">
-              {editingCategory ? 'Редактировать категорию' : 'Новая категория'}
+              {editingCategory ? "Редактировать категорию" : "Новая категория"}
             </h3>
             <div className="space-y-3">
               <Input
                 type="text"
                 value={categoryForm.name}
-                onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                onChange={(e) =>
+                  setCategoryForm({ ...categoryForm, name: e.target.value })
+                }
                 placeholder="Название категории"
               />
               <Input
                 type="text"
                 value={categoryForm.icon}
-                onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                onChange={(e) =>
+                  setCategoryForm({ ...categoryForm, icon: e.target.value })
+                }
                 placeholder="Emoji (например: 🥩)"
               />
               <div className="flex gap-2">
@@ -294,7 +303,7 @@ export function ProductManager({
         {showProductForm && (
           <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg">
             <h3 className="font-semibold mb-3 text-zinc-900 dark:text-zinc-50">
-              {editingProduct ? 'Редактировать продукт' : 'Новый продукт'}
+              {editingProduct ? "Редактировать продукт" : "Новый продукт"}
             </h3>
             <div className="space-y-3">
               {/* Сетка категорий */}
@@ -309,39 +318,50 @@ export function ProductManager({
                         key={cat.id}
                         type="button"
                         onClick={() => {
-                          haptics.tap()
-                          setProductForm({ ...productForm, categoryId: cat.id })
+                          haptics.tap();
+                          setProductForm({
+                            ...productForm,
+                            categoryId: cat.id,
+                          });
                         }}
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex flex-col items-center justify-center gap-1 ${
                           productForm.categoryId === cat.id
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                            ? "bg-blue-600 text-white"
+                            : "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600"
                         }`}
                         title={cat.name}
                       >
                         <span className="text-xl leading-none">{cat.icon}</span>
                         <span className="text-xs leading-tight truncate w-full text-center">
-                          {cat.name.length > 8 ? cat.name.slice(0, 6) + '..' : cat.name}
+                          {cat.name.length > 8
+                            ? cat.name.slice(0, 6) + ".."
+                            : cat.name}
                         </span>
                       </button>
                     ))}
                   </div>
                 </div>
-                {productForm.categoryId === '' && (
-                  <p className="text-red-600 dark:text-red-400 text-sm mt-1">Выберите категорию</p>
+                {productForm.categoryId === "" && (
+                  <p className="text-red-600 dark:text-red-400 text-sm mt-1">
+                    Выберите категорию
+                  </p>
                 )}
               </div>
 
               <Input
                 type="text"
                 value={productForm.name}
-                onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, name: e.target.value })
+                }
                 placeholder="Название продукта"
               />
               <Input
                 type="text"
                 value={productForm.unit}
-                onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, unit: e.target.value })
+                }
                 placeholder="Единица измерения (шт, кг, л, г...)"
               />
               <div className="flex gap-2">
@@ -373,7 +393,10 @@ export function ProductManager({
           ) : (
             <div className="space-y-4">
               {categories.map((category) => (
-                <div key={category.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+                <div
+                  key={category.id}
+                  className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden"
+                >
                   {/* Заголовок категории */}
                   <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -381,8 +404,8 @@ export function ProductManager({
                       <span className="font-semibold text-zinc-900 dark:text-zinc-50">
                         {category.name}
                       </span>
-                      <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                        ({category.products?.length || 0} продуктов)
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                        [{category.products?.length || 0}]
                       </span>
                     </div>
                     <div className="flex gap-2">
@@ -432,7 +455,7 @@ export function ProductManager({
                               </div>
                               {product.unit && (
                                 <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                                  {product.unit}
+                                  {product.unit.toLowerCase()}
                                 </div>
                               )}
                             </div>
@@ -466,5 +489,5 @@ export function ProductManager({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { formatQuantity } from '@/lib/utils/pluralize'
 import { haptics } from '@/lib/utils/haptic'
 import { Badge } from '@/components/ui/badge'
-import { Product, Item, ShoppingList, Category } from '@/types'
+import { Item, ShoppingList, Category } from '@/types'
 
 interface GroupedShoppingListCardProps {
   list: ShoppingList
@@ -60,11 +60,12 @@ export function GroupedShoppingListCard({
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editQuantity, setEditQuantity] = useState(1)
   const [editUnit, setEditUnit] = useState('')
+  const [showAddItemForm, setShowAddItemForm] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const items = list.items || []
 
   // Используем purchasedCount из API если товары не загружены, иначе считаем из items
-  const totalItems = items.length > 0 ? items.length : (list as any)._count?.items || 0
+  const totalItems = items.length > 0 ? items.length : list._count?.items || 0
   const purchasedCount = items.length > 0
     ? items.filter(i => i.purchased).length
     : (list.purchasedCount ?? 0)
@@ -82,44 +83,49 @@ export function GroupedShoppingListCard({
   }, [])
 
   // Группируем товары по категориям
-  const groupedItems = items.reduce((acc, item) => {
-    const categoryName = item.product?.category.name || 'Без категории'
-    const categoryIcon = item.product?.category.icon || '📦'
-    const categoryId = item.product?.category.id || 'no-category'
+  const groupedItems = useMemo(() => {
+    return items.reduce((acc, item) => {
+      const categoryName = item.product?.category.name || 'Без категории'
+      const categoryIcon = item.product?.category.icon || '📦'
+      const categoryId = item.product?.category.id || 'no-category'
 
-    if (!acc[categoryId]) {
-      acc[categoryId] = {
-        id: categoryId,
-        name: categoryName,
-        icon: categoryIcon,
-        items: []
+      if (!acc[categoryId]) {
+        acc[categoryId] = {
+          id: categoryId,
+          name: categoryName,
+          icon: categoryIcon,
+          items: []
+        }
       }
-    }
 
-    acc[categoryId].items.push(item)
-    return acc
-  }, {} as Record<string, { id: string; name: string; icon: string; items: Item[] }>)
+      acc[categoryId].items.push(item)
+      return acc
+    }, {} as Record<string, { id: string; name: string; icon: string; items: Item[] }>)
+  }, [items])
 
   // Сортируем товары: сначала не купленные, потом купленные
-  Object.values(groupedItems).forEach(category => {
-    category.items.sort((a, b) => {
-      if (a.purchased === b.purchased) return 0
-      return a.purchased ? 1 : -1
+  useMemo(() => {
+    Object.values(groupedItems).forEach(category => {
+      category.items.sort((a, b) => {
+        if (a.purchased === b.purchased) return 0
+        return a.purchased ? 1 : -1
+      })
     })
-  })
+  }, [groupedItems])
 
   // Сортируем категории: сначала с продуктами, потом пустые
   const sortedCategories = Object.values(groupedItems).sort((a, b) => {
     return a.name.localeCompare(b.name, 'ru')
   })
 
-  // Автоматически раскрываем категории с невыбранными товарами
+  // Automatically expand categories with unpurchased items
   useEffect(() => {
     const categoriesWithUnpurchased = Object.values(groupedItems)
       .filter(category => category.items.some(item => !item.purchased))
       .map(category => category.id)
 
     setExpandedCategories(new Set(categoriesWithUnpurchased))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [list.items])
 
   const handleMenuAction = (action: () => void) => {
@@ -255,6 +261,20 @@ export function GroupedShoppingListCard({
                       </button>
                     )}
 
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        haptics.tap()
+                        handleMenuAction(() => setShowAddItemForm(!showAddItemForm))
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm"
+                    >
+                      <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span className="text-zinc-900 dark:text-zinc-50">{showAddItemForm ? 'Скрыть форму' : 'Добавить вручную'}</span>
+                    </button>
+
                     {purchasedCount > 0 && (
                       <button
                         onClick={(e) => {
@@ -317,7 +337,8 @@ export function GroupedShoppingListCard({
       {isExpanded && (
         <div className="border-t border-zinc-200 dark:border-zinc-700 p-6">
           {/* Форма добавления товара */}
-          <div className="space-y-3 mb-4">
+          {showAddItemForm && (
+            <div className="space-y-3 mb-4">
             <input
               type="text"
               value={newItemName}
@@ -386,11 +407,19 @@ export function GroupedShoppingListCard({
               )}
             </button>
           </div>
+          )}
 
           {/* Список товаров по категориям */}
           {items.length === 0 ? (
             <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-              Список пуст. Добавьте первый товар!
+              {showAddItemForm ? (
+                'Список пуст. Введите название товара выше!'
+              ) : (
+                <>
+                  <p className="mb-2">Список пуст.</p>
+                  <p className="text-sm">Нажмите на меню (...) и выберите &quot;Добавить вручную&quot;</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -521,18 +550,18 @@ export function GroupedShoppingListCard({
                                 ) : (
                                   // Режим просмотра
                                   <div className={`flex items-center gap-2 ${item.purchased ? 'line-through' : ''}`}>
-                                    <span className="flex-1 text-sm md:text-base truncate text-zinc-900 dark:text-zinc-50">
+                                    <span className="flex-1 min-w-0 text-sm md:text-base truncate text-zinc-900 dark:text-zinc-50">
                                       {item.name}
                                     </span>
-                                    {item.purchased && (
-                                      <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
-                                        ✓ Куплено
-                                      </Badge>
-                                    )}
                                     {(item.quantity > 1 || displayUnit) && (
-                                      <span className="w-1/3 text-sm text-zinc-600 dark:text-zinc-400 text-right">
+                                      <span className="flex-shrink-0 text-sm text-zinc-600 dark:text-zinc-400 text-right">
                                         {formatQuantity(item.quantity, displayUnit || null)}
                                       </span>
+                                    )}
+                                    {item.purchased && (
+                                      <Badge variant="secondary" className="hidden sm:inline-flex bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 flex-shrink-0">
+                                        ✓ Куплено
+                                      </Badge>
                                     )}
                                   </div>
                                 )}
