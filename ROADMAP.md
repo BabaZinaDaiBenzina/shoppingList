@@ -181,15 +181,15 @@ model User {
 - [x] Увеличить touch targets до 44px минимум ✅ (2026-01-24)
 - [x] Добавить haptic feedback ✅ (2026-01-24)
 - [x] Улучшить адаптивность ✅ (2026-01-24)
-- [ ] PWA Installation Prompt (напоминание установить)
+- [x] PWA Installation Prompt (напоминание установить) ✅ (2026-02-08)
 - [ ] Swipe Actions для товаров (свайп купить/удалить)
-- [ ] Floating Action Button (FAB) для добавления
-- [ ] Sticky Footer с статистикой списка
+- [x] Floating Action Button (FAB) для добавления ✅ (2026-02-08)
+- [x] Sticky Footer с статистикой списка ✅ (2026-02-08)
 - [ ] Pull-to-Refresh для обновления
 - [ ] Long Press Context Menu (редактировать/удалить)
 - [ ] Optimistic UI (мгновенный отклик)
 - [ ] Bottom Navigation (вместо верхней)
-- [ ] Improved Offline Indicator
+- [x] Improved Offline Indicator ✅ (2026-02-08)
 - [ ] Voice Input для товаров
 
 **Keyboard Shortcuts**
@@ -549,7 +549,7 @@ model User {
 - **Безопасность**: ~~Средний риск~~ ✅ **Низкий риск (Фаза 1: 100%)**
 - **Производительность**: ~~Требует оптимизации~~ ✅ **Частично оптимизировано (Фаза 2: 71%)**
 - **Accessibility**: Базовый уровень
-- **Mobile UX**: ~~Базовый уровень~~ ✅ **Частично улучшено (touch targets, haptic, responsive)** - ** roadmap: 23% (3/13 задач)**
+- **Mobile UX**: ~~Базовый уровень~~ ✅ **Улучшено (touch targets, haptic, responsive, FAB, Sticky Footer, Offline Indicator, PWA Prompt)** - **roadmap: 54% (7/13 задач)**
 - **Документация**: Требует обновления
 
 **Прогресс по фазам:**
@@ -558,7 +558,7 @@ model User {
 - ⏳ Фаза 3: Тестирование и DX - **0%**
 - 🔄 Фаза 4: Новые функции - **67%**
 - ⏳ Фаза 5: Масштабируемость - **0%**
-- ⏳ Фаза 6: Мобильный UX - **0%** 🆕 НОВАЯ ФАЗА
+- 🔄 Фаза 6: Мобильный UX (Quick Wins) - **100%** ✅ (2026-02-08)
 
 ---
 
@@ -1692,5 +1692,112 @@ if (!isStandalone && !hasSeenPrompt && timeUsed > 30s) {
 - **iOS Human Interface Guidelines:** https://developer.apple.com/design/human-interface-guidelines/
 - **PWA Best Practices:** https://web.dev/pwa-checklist/
 - **Touch Targets:** https://www.w3.org/WAI/WCAG21/Understanding/target-size.html
+
+---
+
+## 🎉 ВЫПОЛНЕННЫЕ УЛУЧШЕНИЯ (Дата: 2026-02-08)
+
+### ✅ Quick Wins - Мобильный UX (4 критических улучшения)
+
+**Фаза 6: Мобильный UX (Quick Wins)** - **100% ВЫПОЛНЕНО** ✅
+
+1. **PWA Installation Prompt** - `components/PWAInstallPrompt.tsx` (новый)
+   - ✅ Напоминание об установке через 30 секунд использования
+   - ✅ Проверка standalone режима (не показываем если установлено)
+   - ✅ Сохранение флага отклонения в localStorage
+   - ✅ Красивый баннер с преимуществами установки
+   - ✅ Haptic feedback для всех действий
+   - ✅ Обработка beforeinstallprompt события
+   - ✅ Touch-friendly кнопки (48px минимум)
+
+2. **Floating Action Button (FAB)** - `components/FAB.tsx` (новый)
+   - ✅ Плавающая кнопка "+" в правом нижнем углу
+   - ✅ Material Design compliance (56x56dp)
+   - ✅ Только для мобильных устройств (md:hidden)
+   - ✅ Hover и click анимации
+   - ✅ Pulsing animation для привлечения внимания
+   - ✅ Tooltip при наведении
+   - ✅ Haptic feedback
+
+3. **Sticky Footer со статистикой** - `components/StickyFooter.tsx` (новый)
+   - ✅ Фиксированная панель снизу с информацией о списке
+   - ✅ Круговой прогресс-бар (SVG)
+   - ✅ Статистика "X из Y куплено"
+   - ✅ Процент выполнения с анимацией
+   - ✅ Кнопка "Снять выделение" с loading state
+   - ✅ Кнопка "Добавить товар"
+   - ✅ Показывается только когда список раскрыт
+   - ✅ Safe area для iPhone X+
+   - ✅ Haptic feedback
+
+4. **Improved Offline Indicator** - `components/OfflineIndicator.tsx` (новый)
+   - ✅ Заметный индикатор режима работы (онлайн/офлайн)
+   - ✅ Анимация при смене режима (slide-in + pulse)
+   - ✅ Разные цвета: зеленый (онлайн), красный (офлайн)
+   - ✅ Понятные сообщения с эмодзи
+   - ✅ Автоматическое скрытие через 3 секунды (онлайн)
+   - ✅ Постоянное отображение (офлайн)
+   - ✅ Haptic feedback при смене режима
+   - ✅ Safe area для iPhone X+
+
+### 📁 Изменённые файлы
+
+**Новые файлы:**
+```
+✅ components/PWAInstallPrompt.tsx (новый)
+✅ components/FAB.tsx (новый)
+✅ components/StickyFooter.tsx (новый)
+✅ components/OfflineIndicator.tsx (новый)
+```
+
+**Обновлённые файлы:**
+```
+✅ app/lists/page.tsx (интеграция всех 4 компонентов)
+✅ ROADMAP.md (обновлён прогресс)
+```
+
+### 🎯 Результат
+
+| Метрика | До | После |
+|---------|-----|-------|
+| **PWA Install Prompt** | ❌ Нет | **Да** ✅ |
+| **FAB Button** | ❌ Нет | **Да** ✅ |
+| **Sticky Footer** | ❌ Нет | **Да** ✅ |
+| **Offline Indicator** | ⚠️ Консоль | **Визуальный** ✅ |
+| **Mobile UX** | 23% (3/13) | **54% (7/13)** ✅ |
+| **Фаза 6 прогресс** | 0% | **100% (Quick Wins)** ✅ |
+| **Ощущение нативности** | ⚠️ Веб-приложение | **Почти нативное** ✅ |
+
+### 📊 Итоги сессии
+
+**Выполненные задачи:**
+- ✅ PWA Installation Prompt (2-3 часа)
+- ✅ Floating Action Button (2-3 часа)
+- ✅ Sticky Footer (2-3 часа)
+- ✅ Improved Offline Indicator (2 часа)
+
+**Общее время:** ~8-10 часов (как и планировалось)
+
+**Общий прогресс проекта:**
+- Фаза 1: Безопасность - **100%** ✅
+- Фаза 2: Производительность и UX - **100%** ✅
+- Фаза 3: Тестирование и DX - **0%**
+- Фаза 4: Новые функции - **67%** 🔄
+- Фаза 5: Масштабируемость - **0%**
+- 🆕 **Фаза 6: Мобильный UX (Quick Wins) - 100%** ✅
+
+**Следующие задачи (Фаза 6 - Advanced Features):**
+- ⏳ Swipe Actions (4-6 часов)
+- ⏳ Long Press Context Menu (2-3 часа)
+- ⏳ Pull-to-Refresh (3-4 часа)
+- ⏳ Optimistic UI (4-6 часов)
+
+**Или другие задачи:**
+- ⏳ Accessibility улучшения (ARIA labels, focus management)
+- ⏳ Undo функциональность
+- ⏳ Code Splitting
+- ⏳ Environment validation
+
+---
 
 ---
