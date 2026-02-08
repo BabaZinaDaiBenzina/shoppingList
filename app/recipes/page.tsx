@@ -458,7 +458,7 @@ export default function RecipesPage() {
             <div className="flex gap-3">
               <Link
                 href="/"
-                className="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors text-center"
+                className="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors text-center text-nowrap"
               >
                 На главную
               </Link>
@@ -472,7 +472,7 @@ export default function RecipesPage() {
                 }}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
               >
-                {showCreateForm ? 'Отмена' : '+ Добавить рецепт'}
+                {showCreateForm ? 'Отмена' : 'Создать'}
               </button>
             </div>
           </div>
@@ -585,7 +585,11 @@ export default function RecipesPage() {
                 </div>
 
                 {/* Форма с прокруткой */}
-                <form onSubmit={editingRecipe ? updateRecipe : createRecipe} className="flex-1 overflow-y-auto">
+                <form
+                  id={editingRecipe ? 'edit-recipe-form' : 'create-recipe-form'}
+                  onSubmit={editingRecipe ? updateRecipe : createRecipe}
+                  className="flex-1 overflow-y-auto"
+                >
                   <div className="p-6 space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -679,26 +683,27 @@ export default function RecipesPage() {
                       />
                     </div>
                   </div>
-
-                  {/* Футер с кнопками */}
-                  <div className="p-6 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={editingRecipe ? cancelEdit : () => setShowCreateForm(false)}
-                        className="flex-1 px-6 py-3 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors"
-                      >
-                        Отмена
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        {editingRecipe ? '💾 Обновить рецепт' : 'Сохранить рецепт'}
-                      </button>
-                    </div>
-                  </div>
                 </form>
+
+                {/* Футер с кнопками - зафиксирован */}
+                <div className="px-6 py-3 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={editingRecipe ? cancelEdit : () => setShowCreateForm(false)}
+                      className="flex-1 px-6 py-3 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      type="submit"
+                      form={editingRecipe ? 'edit-recipe-form' : 'create-recipe-form'}
+                      className="flex-1 px-3 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      {editingRecipe ? 'Обновить' : 'Сохранить'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -750,8 +755,8 @@ export default function RecipesPage() {
                         {recipe.title}
                       </h3>
                       {recipe.isFavorite && (
-                        <svg className="w-5 h-5 text-red-500 rotate-45" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2l-2-2z" />
+                        <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                         </svg>
                       )}
                       {recipe.category && (
