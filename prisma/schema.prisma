@@ -12,19 +12,20 @@ datasource db {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  username      String        @unique
-  passwordHash  String
-  name          String?
-  role          String        @default("user")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id             String         @id @default(cuid())
+  email          String         @unique
+  username       String         @unique
+  passwordHash   String
+  name           String?
+  role           String         @default("user")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   shoppingLists ShoppingList[]
-  sharedLists   ListShare[]
-  recipes       Recipe[]
-  refreshTokens RefreshToken[]
-  templates     Template[]
+  sharedLists    ListShare[]
+  recipes        Recipe[]
+  sharedRecipes  RecipeShare[]
+  refreshTokens  RefreshToken[]
+  templates      Template[]
 
   @@index([email])
 }
@@ -94,17 +95,46 @@ model Item {
 }
 
 model Recipe {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   title        String
   description  String?
   ingredients  String
-  instructions String
+  instructions String?
   cookingTime  Int?
   servings     Int?
+  category     RecipeCategory @default(OTHER)
+  isFavorite   Boolean       @default(false)
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares       RecipeShare[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model RecipeShare {
+  id            String        @id @default(cuid())
+  recipeId      String
+  recipe        Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+
+  @@unique([recipeId, userId])
+}
+
+enum RecipeCategory {
+  BREAKFAST    // Завтрак
+  LUNCH        // Обед
+  DINNER       // Ужин
+  SNACK        // Закуска
+  SOUP         // Суп
+  SALAD        // Салат
+  MAIN_COURSE  // Основное блюдо
+  DESSERT      // Десерт
+  DRINK        // Напиток
+  BAKING       // Выпечка
+  PRESERVES    // Заготовки
+  OTHER        // Другое
 }
 
 model Template {

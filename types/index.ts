@@ -168,6 +168,24 @@ export type RecipeWithUser = Prisma.RecipeGetPayload<{
   }
 }>
 
+// Recipe Category маппинг (для UI)
+export const RECIPE_CATEGORIES = {
+  BREAKFAST: { label: 'Завтрак', emoji: '🍳' },
+  LUNCH: { label: 'Обед', emoji: '🍽️' },
+  DINNER: { label: 'Ужин', emoji: '🌙' },
+  SNACK: { label: 'Закуска', emoji: '🥟' },
+  SOUP: { label: 'Суп', emoji: '🍲' },
+  SALAD: { label: 'Салат', emoji: '🥗' },
+  MAIN_COURSE: { label: 'Основное', emoji: '🍖' },
+  DESSERT: { label: 'Десерт', emoji: '🍰' },
+  DRINK: { label: 'Напиток', emoji: '🥤' },
+  BAKING: { label: 'Выпечка', emoji: '🥧' },
+  PRESERVES: { label: 'Заготовки', emoji: '🥫' },
+  OTHER: { label: 'Другое', emoji: '📝' },
+} as const
+
+export type RecipeCategoryKey = keyof typeof RECIPE_CATEGORIES
+
 // User с relations (для админки)
 export type UserWithLists = Prisma.UserGetPayload<{
   include: {

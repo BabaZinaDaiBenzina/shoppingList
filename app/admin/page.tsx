@@ -109,8 +109,18 @@ export default function AdminPage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Панель администратора</h1>
-          <p className="text-gray-600">Управление пользователями и списками покупок</p>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">Панель администратора</h1>
+              <p className="text-gray-600">Управление пользователями и списками покупок</p>
+            </div>
+            <button
+              onClick={() => router.push('/admin/roadmap')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              📋 Roadmap
+            </button>
+          </div>
         </div>
 
         {/* Error message */}
