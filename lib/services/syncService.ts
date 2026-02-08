@@ -19,7 +19,7 @@ interface SyncOperation {
   type: 'CREATE' | 'UPDATE' | 'DELETE'
   endpoint: string
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
-  data?: any
+  data?: unknown
   timestamp: number
   retryCount: number
   lastRetry?: number
@@ -83,7 +83,7 @@ class SyncService {
     type: 'CREATE' | 'UPDATE' | 'DELETE',
     endpoint: string,
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
-    data?: any
+    data?: unknown
   ): Promise<void> {
     // Извлекаем информацию о ресурсе для блокировок
     const resourceInfo = this.extractResourceInfo(endpoint, type)
@@ -383,7 +383,12 @@ class SyncService {
   /**
    * Обновляет локальные данные в IndexedDB после успешной синхронизации
    */
-  private async updateLocalData(operation: SyncOperation, result: any): Promise<void> {
+  private async updateLocalData(operation: SyncOperation, result: {
+    shoppingList?: import('@/types').ShoppingListUI
+    list?: import('@/types').ShoppingListUI
+    item?: import('@/types').ItemUI
+    items?: import('@/types').ItemUI[]
+  }): Promise<void> {
     // Если это операции с товарами
     if (operation.endpoint.match(/\/shopping-lists\/[^/]+\/items/) ||
         operation.endpoint.match(/\/items\/[^/]+/)) {

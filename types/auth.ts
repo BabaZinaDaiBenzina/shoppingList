@@ -1,12 +1,9 @@
-export interface User {
-  id: string
-  email: string
-  username: string
-  name: string | null
-  role: string
-  createdAt: string
-  updatedAt: string
-}
+import type { User as PrismaUser } from './index'
+
+// Re-export Prisma User type
+export type User = PrismaUser
+
+// Дополнительные типы для авторизации (не являются дубликатами Prisma)
 
 export interface AuthResponse {
   user: User

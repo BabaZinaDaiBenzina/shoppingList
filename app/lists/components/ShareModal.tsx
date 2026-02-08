@@ -12,13 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
 import { haptics } from "@/lib/utils/haptic"
-
-interface User {
-  id: string
-  username: string
-  name: string | null
-  email: string
-}
+import type { User } from "@/types"
 
 interface Share {
   id: string
@@ -177,7 +171,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
         <DialogHeader>
           <DialogTitle>Поделиться списком</DialogTitle>
           <DialogDescription className="truncate">
-            "{listName}"
+            &quot;{listName}&quot;
           </DialogDescription>
         </DialogHeader>
 

@@ -68,7 +68,7 @@ export function SaveAsTemplateModal({
         <DialogHeader>
           <DialogTitle>💾 Сохранить как шаблон</DialogTitle>
           <DialogDescription>
-            Сохраните товары из списка "{listName}" как шаблон для будущего использования
+            Сохраните товары из списка &quot;{listName}&quot; как шаблон для будущего использования
           </DialogDescription>
         </DialogHeader>
 

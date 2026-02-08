@@ -3,44 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-
-interface Item {
-  id: string
-  name: string
-  quantity: number
-  purchased: boolean
-}
-
-interface ShoppingList {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  _count: {
-    items: number
-  }
-}
-
-interface User {
-  id: string
-  email: string
-  username: string
-  name: string | null
-  role: string
-  createdAt: string
-  updatedAt: string
-  _count: {
-    shoppingLists: number
-    recipes: number
-  }
-  shoppingLists: ShoppingList[]
-}
+import type { UserWithLists } from '@/types'
 
 export default function AdminPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const router = useRouter()
 
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserWithLists[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
@@ -275,7 +244,7 @@ export default function AdminPage() {
               Подтверждение удаления
             </h3>
             <p className="text-gray-600 mb-6">
-              Вы уверены, что хотите удалить {deleteConfirm.type === 'user' ? 'пользователя' : 'список'} "<strong>{deleteConfirm.name}</strong>"?
+              Вы уверены, что хотите удалить {deleteConfirm.type === 'user' ? 'пользователя' : 'список'} &quot;<strong>{deleteConfirm.name}</strong>&quot;?
               {deleteConfirm.type === 'user' && (
                 <span className="block mt-2 text-red-600">
                   Все данные пользователя (списки, рецепты) будут безвозвратно удалены!

@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { haptics } from "@/lib/utils/haptic";
 import { useOfflineData } from "@/hooks/useOfflineData";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { Product, ShoppingList, Category } from "@/types";
+import { Product, ShoppingListUI, Category } from "@/types";
 
 export default function ListsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -34,7 +34,7 @@ export default function ListsPage() {
   } = useOfflineData();
 
   // State
-  const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
+  const [shoppingLists, setShoppingLists] = useState<ShoppingListUI[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [newListName, setNewListName] = useState("");
@@ -286,7 +286,7 @@ export default function ListsPage() {
       if (isInitialized) {
         const offlineLists = await getOfflineLists();
         if (offlineLists.length > 0) {
-          setShoppingLists(offlineLists);
+          setShoppingLists(offlineLists as ShoppingListUI[]);
           setError("Офлайн режим. Показаны локально сохраненные данные.");
         } else {
           setError(
@@ -510,15 +510,19 @@ export default function ListsPage() {
         quantity: quantity || 1,
         unit: unit || null,
         purchased: false,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
+        product: null,
+        listId: listId,
+        productId: null,
+        updatedAt: new Date(),
       };
 
       setShoppingLists((lists) =>
         lists.map((list) =>
           list.id === listId
-            ? { ...list, items: [...(list.items || []), tempItem] }
+            ? { ...list, items: [...(list.items || []), tempItem] } as ShoppingListUI
             : list,
-        ),
+        ) as ShoppingListUI[],
       );
 
       // Обновляем в IndexedDB
@@ -573,9 +577,9 @@ export default function ListsPage() {
       setShoppingLists((lists) =>
         lists.map((list) =>
           list.id === listId
-            ? { ...list, items: [...list.items, data.item] }
+            ? { ...list, items: [...(list.items || []), data.item] } as ShoppingListUI
             : list,
-        ),
+        ) as ShoppingListUI[],
       );
 
       // Сохраняем обновленный список в IndexedDB
@@ -583,7 +587,7 @@ export default function ListsPage() {
       if (updatedList) {
         await saveOfflineList({
           ...updatedList,
-          items: [...updatedList.items, data.item],
+          items: [...(updatedList.items || []), data.item],
         });
       }
 
@@ -619,7 +623,7 @@ export default function ListsPage() {
 
     // Находим товар и переключаем его статус локально
     const list = shoppingLists.find((l) => l.id === listId);
-    const item = list?.items.find((i) => i.id === itemId);
+    const item = list?.items?.find((i) => i.id === itemId);
 
     if (!item) return;
 
@@ -631,12 +635,12 @@ export default function ListsPage() {
         list.id === listId
           ? {
               ...list,
-              items: list.items.map((item) =>
+              items: (list.items || []).map((item) =>
                 item.id === itemId ? updatedItem : item,
               ),
-            }
+            } as ShoppingListUI
           : list,
-      ),
+      ) as ShoppingListUI[],
     );
 
     setIsTogglingItem((prev) => ({ ...prev, [itemKey]: true }));
@@ -647,7 +651,7 @@ export default function ListsPage() {
       if (updatedList) {
         const listWithUpdatedItem = {
           ...updatedList,
-          items: updatedList.items.map((i) =>
+          items: (updatedList.items || []).map((i) =>
             i.id === itemId ? updatedItem : i,
           ),
         };
@@ -675,12 +679,12 @@ export default function ListsPage() {
           list.id === listId
             ? {
                 ...list,
-                items: list.items.map((item) =>
+                items: (list.items || []).map((item) =>
                   item.id === itemId ? data.item : item,
                 ),
-              }
+              } as ShoppingListUI
             : list,
-        ),
+        ) as ShoppingListUI[],
       );
 
       // Сохраняем в IndexedDB
@@ -688,7 +692,7 @@ export default function ListsPage() {
       if (updatedList) {
         const listWithUpdatedItem = {
           ...updatedList,
-          items: updatedList.items.map((i) =>
+          items: (updatedList.items || []).map((i) =>
             i.id === itemId ? data.item : i,
           ),
         };
@@ -723,17 +727,17 @@ export default function ListsPage() {
           list.id === listId
             ? {
                 ...list,
-                items: list.items.filter((item) => item.id !== itemId),
-              }
+                items: (list.items || []).filter((item) => item.id !== itemId),
+              } as ShoppingListUI
             : list,
-        ),
+        ) as ShoppingListUI[],
       );
 
       const updatedList = shoppingLists.find((l) => l.id === listId);
       if (updatedList) {
         await saveOfflineList({
           ...updatedList,
-          items: updatedList.items.filter((i) => i.id !== itemId),
+          items: (updatedList.items || []).filter((i) => i.id !== itemId),
         });
       }
 
@@ -761,10 +765,10 @@ export default function ListsPage() {
           list.id === listId
             ? {
                 ...list,
-                items: list.items.filter((item) => item.id !== itemId),
-              }
+                items: (list.items || []).filter((item) => item.id !== itemId),
+              } as ShoppingListUI
             : list,
-        ),
+        ) as ShoppingListUI[],
       );
     } catch (err) {
       setError(
@@ -809,12 +813,12 @@ export default function ListsPage() {
           list.id === listId
             ? {
                 ...list,
-                items: list.items.map((item) =>
+                items: (list.items || []).map((item) =>
                   item.id === itemId ? responseData.item : item,
                 ),
-              }
+              } as ShoppingListUI
             : list,
-        ),
+        ) as ShoppingListUI[],
       );
 
       // Сохраняем в IndexedDB
@@ -822,7 +826,7 @@ export default function ListsPage() {
       if (updatedList) {
         const listWithUpdatedItem = {
           ...updatedList,
-          items: updatedList.items.map((i) =>
+          items: (updatedList.items || []).map((i) =>
             i.id === itemId ? responseData.item : i,
           ),
         };
@@ -1399,7 +1403,7 @@ export default function ListsPage() {
             itemNames={
               shoppingLists
                 .find((l) => l.id === saveAsTemplateListId)
-                ?.items.map((i) => i.name) || []
+                ?.items?.map((i) => i.name) || []
             }
             onSave={async (templateName, description) => {
               await saveAsTemplate(

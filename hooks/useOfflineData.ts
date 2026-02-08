@@ -3,17 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { indexedDB } from '@/lib/services/indexedDB'
 import { syncService } from '@/lib/services/syncService'
-
-interface ShoppingList {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  items: any[]
-  isShared?: boolean
-  isOwner?: boolean
-  user?: any
-}
+import type { ShoppingListUI, ItemUI, User } from '@/types'
 
 export function useOfflineData() {
   const [isOnline, setIsOnline] = useState(true)
@@ -67,7 +57,7 @@ export function useOfflineData() {
   }, [])
 
   // Получить все списки из IndexedDB
-  const getOfflineLists = useCallback(async (): Promise<ShoppingList[]> => {
+  const getOfflineLists = useCallback(async (): Promise<ShoppingListUI[]> => {
     try {
       return await indexedDB.getAllShoppingLists()
     } catch (error) {
@@ -77,7 +67,7 @@ export function useOfflineData() {
   }, [])
 
   // Сохранить список в IndexedDB
-  const saveOfflineList = useCallback(async (list: ShoppingList) => {
+  const saveOfflineList = useCallback(async (list: ShoppingListUI) => {
     try {
       await indexedDB.saveShoppingList(list)
     } catch (error) {
@@ -99,7 +89,7 @@ export function useOfflineData() {
     type: 'CREATE' | 'UPDATE' | 'DELETE',
     endpoint: string,
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
-    data?: any
+    data?: unknown
   ) => {
     try {
       await syncService.enqueueOperation(type, endpoint, method, data)

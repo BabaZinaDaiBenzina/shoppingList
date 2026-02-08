@@ -4,22 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface Recipe {
-  id: string
-  title: string
-  description: string
-  ingredients: string
-  instructions: string
-  cookingTime?: number
-  servings?: number
-  createdAt: string
-}
-
-interface ShoppingList {
-  id: string
-  name: string
-}
+import type { Recipe, ShoppingList } from '@/types'
 
 export default function RecipesPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
