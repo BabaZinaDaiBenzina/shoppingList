@@ -1,9 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Search } from 'lucide-react'
+import { Plus, Minus, ShoppingCart, X } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { haptics } from '@/lib/utils/haptic'
-import type { Category, Product } from '@/types'
+import { formatQuantity } from '@/lib/utils/pluralize'
+import type { Category, ProductWithCategory } from '@/types'
 
 interface RecipeIngredient {
   productId?: string
@@ -28,61 +38,100 @@ interface RecipeIngredientsSelectorProps {
  * - Указывать количество и единицу измерения
  */
 export function RecipeIngredientsSelector({ ingredients, onChange }: RecipeIngredientsSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductWithCategory[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [customIngredient, setCustomIngredient] = useState({ name: '', quantity: 1, unit: '' })
   const [showCustomInput, setShowCustomInput] = useState(false)
+  const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (isOpen) {
+    if (isCatalogOpen) {
       fetchCategories()
+    }
+  }, [isCatalogOpen])
+
+  useEffect(() => {
+    if (isCatalogOpen) {
       fetchProducts()
     }
-  }, [isOpen])
-
-  useEffect(() => {
-    fetchProducts()
-  }, [selectedCategoryId])
+  }, [selectedCategoryId, searchQuery, isCatalogOpen])
 
   const fetchCategories = async () => {
     try {
       const response = await fetch('/api/categories')
       const data = await response.json()
-      setCategories(data.categories || [])
+      if (response.ok) {
+        const sorted = data.categories.sort((a: Category, b: Category) => a.sortOrder - b.sortOrder)
+        setCategories(sorted)
+      }
     } catch (error) {
       console.error('Ошибка загрузки категорий:', error)
     }
   }
 
   const fetchProducts = async () => {
+    setIsLoading(true)
     try {
-      const url = selectedCategoryId
-        ? `/api/products?categoryId=${selectedCategoryId}`
-        : '/api/products'
+      const params = new URLSearchParams()
 
-      const response = await fetch(url)
+      if (selectedCategoryId) {
+        params.append('categoryId', selectedCategoryId)
+      }
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery.trim())
+      }
+
+      const response = await fetch(`/api/products?${params}`)
       const data = await response.json()
-      setProducts(data.products || [])
+      if (response.ok) {
+        setProducts(data.products || [])
+      }
     } catch (error) {
       console.error('Ошибка загрузки продуктов:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const addProductFromCatalog = (product: Product) => {
+  const updateQuantity = (productId: string, delta: number) => {
     haptics.tap()
+    setQuantities((prev) => {
+      const current = prev[productId] || 1
+      const newValue = Math.max(1, current + delta)
+      return { ...prev, [productId]: newValue }
+    })
+  }
+
+  const setQuantity = (productId: string, value: number) => {
+    setQuantities((prev) => ({
+      ...prev,
+      [productId]: Math.max(1, value),
+    }))
+  }
+
+  const addProductFromCatalog = (product: ProductWithCategory) => {
+    const quantity = quantities[product.id] || 1
+    haptics.success()
 
     const newIngredient: RecipeIngredient = {
       productId: product.id,
       name: product.name,
-      quantity: 1,
+      quantity,
       unit: product.unit || undefined,
       productName: product.name,
+      categoryName: product.category.name,
     }
 
     onChange([...ingredients, newIngredient])
+    setQuantities((prev) => ({ ...prev, [product.id]: 1 }))
+  }
+
+  const isIngredientInList = (productName: string) => {
+    return ingredients.some((ing) => ing.name === productName)
   }
 
   const addCustomIngredient = () => {
@@ -111,10 +160,6 @@ export function RecipeIngredientsSelector({ ingredients, onChange }: RecipeIngre
     updated[index].quantity = quantity
     onChange(updated)
   }
-
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   return (
     <div className="space-y-4">
@@ -151,6 +196,7 @@ export function RecipeIngredientsSelector({ ingredients, onChange }: RecipeIngre
                     {ingredient.unit || 'шт'}
                   </span>
                   <button
+                    type="button"
                     onClick={() => removeIngredient(idx)}
                     className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                   >
@@ -164,22 +210,24 @@ export function RecipeIngredientsSelector({ ingredients, onChange }: RecipeIngre
       )}
 
       {/* Кнопка добавления кастомного ингредиента */}
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setShowCustomInput(true)}
-        className="w-full px-4 py-2 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+        className="w-full"
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="w-4 h-4 mr-2" />
         Свой ингредиент
-      </button>
+      </Button>
 
       {/* FAB для каталога */}
-      <div className="fixed bottom-20 right-4 z-40">
+      <div className="fixed bottom-27 right-10 z-40">
         <button
           type="button"
-          onClick={() => setIsOpen(true)}
+          onClick={() => setIsCatalogOpen(true)}
           className="h-14 w-14 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white transition-all duration-200 ease-in-out hover:scale-110 active:scale-95 flex items-center justify-center"
           aria-label="Добавить из каталога"
+          title="Добавить из каталога"
         >
           <Plus className="w-6 h-6" />
         </button>
@@ -188,143 +236,228 @@ export function RecipeIngredientsSelector({ ingredients, onChange }: RecipeIngre
       {/* Кастомный ингредиент */}
       {showCustomInput && (
         <div className="p-4 bg-zinc-100 dark:bg-zinc-700/50 rounded-lg space-y-3">
-          <input
+          <Input
             type="text"
             value={customIngredient.name}
             onChange={(e) => setCustomIngredient({ ...customIngredient, name: e.target.value })}
             placeholder="Например: Помидоры"
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-700 dark:text-white text-base"
             autoFocus
           />
           <div className="flex gap-2">
-            <input
+            <Input
               type="number"
               value={customIngredient.quantity}
               onChange={(e) => setCustomIngredient({ ...customIngredient, quantity: parseFloat(e.target.value) || 0 })}
               placeholder="Кол-во"
-              className="w-24 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-700 dark:text-white text-base min-w-0"
               min="0"
               step="0.1"
             />
-            <input
+            <Input
               type="text"
               value={customIngredient.unit}
               onChange={(e) => setCustomIngredient({ ...customIngredient, unit: e.target.value })}
               placeholder="шт, кг, л"
-              className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-700 dark:text-white text-base min-w-0"
             />
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
               onClick={addCustomIngredient}
-              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-base"
+              className="flex-1"
             >
               Добавить
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => {
                 setShowCustomInput(false)
                 setCustomIngredient({ name: '', quantity: 1, unit: '' })
               }}
-              className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-50 rounded-lg font-medium transition-colors text-base"
             >
               Отмена
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      {/* Модалка выбора из каталога */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-            {/* Заголовок */}
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-                  Выберите продукты
-                </h3>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Диалог выбора из каталога */}
+      <Dialog open={isCatalogOpen} onOpenChange={(open) => !open && setIsCatalogOpen(false)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>🍽 Каталог продуктов</DialogTitle>
+            <DialogDescription>
+              Добавляйте ингредиенты из каталога в ваш рецепт
+            </DialogDescription>
+          </DialogHeader>
 
-              {/* Поиск */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Поиск продуктов..."
-                  className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-700 dark:text-white"
-                />
-              </div>
-            </div>
+          {/* Поиск */}
+          <div className="mb-4">
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setSelectedCategoryId(null)
+              }}
+              placeholder="🔍 Поиск продуктов..."
+            />
+          </div>
 
-            {/* Категории */}
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-700">
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                <button
-                  onClick={() => setSelectedCategoryId(null)}
-                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                    selectedCategoryId === null
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
-                  }`}
+          {/* Категории (показываем только если нет поиска) */}
+          {!searchQuery && (
+            <div className="min-h-[125px] overflow-y-auto">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pb-2">
+                <Button
+                  variant={selectedCategoryId === null ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    haptics.tap()
+                    setSelectedCategoryId(null)
+                  }}
+                  className="w-full"
                 >
                   Все
-                </button>
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategoryId(category.id)}
-                    className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                      selectedCategoryId === category.id
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-200 dark:hover:bg-zinc-600'
-                    }`}
-                  >
-                    {category.icon} {category.name}
-                  </button>
-                ))}
+                </Button>
+                {categories.map((category) => {
+                  const displayName =
+                    category.name.length > 8
+                      ? category.name.slice(0, 6) + ".."
+                      : category.name
+
+                  return (
+                    <Button
+                      key={category.id}
+                      variant={selectedCategoryId === category.id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        haptics.tap()
+                        setSelectedCategoryId(category.id)
+                      }}
+                      className="w-full truncate justify-start"
+                      title={category.name}
+                    >
+                      <span className="mr-1">{category.icon}</span> {displayName}
+                    </Button>
+                  )
+                })}
               </div>
             </div>
+          )}
 
-            {/* Список продуктов */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {filteredProducts.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-                  Продукты не найдены
-                </div>
-              ) : (
-                filteredProducts.map((product) => (
-                  <button
-                    key={product.id}
-                    onClick={() => {
-                      addProductFromCatalog(product)
-                      setIsOpen(false)
-                    }}
-                    className="w-full p-3 text-left bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-                  >
-                    <div className="font-medium text-zinc-900 dark:text-zinc-50">
-                      {product.name}
+          {/* Список продуктов */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {products.length === 0 ? (
+              <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+                {isLoading ? "Загрузка..." : "Нет продуктов"}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {products.map((product) => {
+                  const isInList = isIngredientInList(product.name)
+                  const quantity = quantities[product.id] || 1
+
+                  return (
+                    <div
+                      key={product.id}
+                      className={`p-3 rounded-lg transition-all ${
+                        isInList
+                          ? "bg-green-100 dark:bg-green-900/20"
+                          : "bg-zinc-50 dark:bg-zinc-700/50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-zinc-900 dark:text-zinc-50 truncate">
+                            {product.name}
+                          </div>
+                          <div className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-1">
+                            <span className="ml-1">{product.category.icon}</span>{" "}
+                            {product.category.name}
+                          </div>
+                        </div>
+                        {isInList ? (
+                          <span className="text-green-600 dark:text-green-400 text-xl flex-shrink-0">
+                            ✓
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* Quantity контрол и unit */}
+                      {!isInList && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-600">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 min-w-[32px]"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateQuantity(product.id, -1)
+                              }}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <Input
+                              type="number"
+                              value={quantity}
+                              onChange={(e) => {
+                                e.stopPropagation()
+                                setQuantity(
+                                  product.id,
+                                  parseInt(e.target.value) || 1,
+                                )
+                              }}
+                              onFocus={(e) =>
+                                setTimeout(() => e.target.select(), 0)
+                              }
+                              min="1"
+                              className="w-12 h-8 px-1 py-0 text-center text-sm border-0 focus:ring-0 dark:bg-zinc-800"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 min-w-[32px]"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateQuantity(product.id, 1)
+                              }}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+
+                          {/* Unit */}
+                          <div className="text-sm text-zinc-600 dark:text-zinc-400 px-2 py-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-600 flex-shrink-0 min-w-[60px] h-9 flex items-center justify-center">
+                            {formatQuantity(
+                              quantity,
+                              product.unit?.toLocaleLowerCase() || "шт",
+                            )}
+                          </div>
+
+                          {/* Кнопка добавления */}
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              haptics.success()
+                              addProductFromCatalog(product)
+                            }}
+                            className="flex-1 h-9"
+                          >
+                            <ShoppingCart className="w-3 h-3 mr-1" />
+                            Добавить
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {product.unit && `${product.unit}`}
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
