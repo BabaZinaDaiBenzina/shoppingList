@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ShoppingList } from "@/types";
+import { ShoppingListUI } from "@/types";
 
 interface ShoppingListCardProps {
-  list: ShoppingList;
+  list: ShoppingListUI;
   isExpanded: boolean;
   onToggle: (listId: string) => void;
   onDelete: (listId: string) => void;

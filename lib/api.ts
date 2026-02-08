@@ -25,18 +25,18 @@ interface RequestOptions extends RequestInit {
  */
 export async function apiFetch(url: string, options: RequestOptions = {}): Promise<Response> {
   // Убедимся что headers существует
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...options.headers,
   }
 
   // Убираем Authorization header если он есть (теперь используем cookie)
-  delete (headers as any)['Authorization']
+  const { Authorization, ...headersWithoutAuth } = headers
 
   // Выполняем запрос - cookie автоматически отправится браузером
   return fetch(url, {
     ...options,
-    headers,
+    headers: headersWithoutAuth,
   })
 }
 
@@ -60,10 +60,7 @@ export async function apiFetchJson<T = any>(url: string, options: RequestOptions
  */
 export function withCredentials(options: RequestOptions): RequestOptions {
   const { headers, ...rest } = options
-  const newHeaders = { ...headers }
+  const { Authorization, ...headersWithoutAuth } = headers || {}
 
-  // Удаляем Authorization header
-  delete (newHeaders as any)['Authorization']
-
-  return { ...rest, headers: newHeaders }
+  return { ...rest, headers: headersWithoutAuth as Record<string, string> }
 }

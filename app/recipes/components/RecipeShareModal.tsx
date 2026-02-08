@@ -14,23 +14,23 @@ import { X } from "lucide-react"
 import { haptics } from "@/lib/utils/haptic"
 import type { User } from "@/types"
 
-interface Share {
+interface RecipeShare {
   id: string
   user: User
   createdAt: string
 }
 
-interface ShareModalProps {
-  listId: string
-  listName: string
+interface RecipeShareModalProps {
+  recipeId: string
+  recipeTitle: string
   isOpen: boolean
   onClose: () => void
 }
 
-export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProps) {
+export function RecipeShareModal({ recipeId, recipeTitle, isOpen, onClose }: RecipeShareModalProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
-  const [shares, setShares] = useState<Share[]>([])
+  const [shares, setShares] = useState<RecipeShare[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isLoadingShares, setIsLoadingShares] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -42,7 +42,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
     if (isOpen) {
       fetchShares()
     }
-  }, [isOpen, listId])
+  }, [isOpen, recipeId])
 
   // Поиск пользователей с debounce
   useEffect(() => {
@@ -80,7 +80,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
   const fetchShares = async () => {
     setIsLoadingShares(true)
     try {
-      const response = await fetch(`/api/shopping-lists/${listId}/share`)
+      const response = await fetch(`/api/recipes/${recipeId}/share`)
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка при загрузке списка')
 
@@ -112,11 +112,11 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
     }
   }
 
-  const shareList = async () => {
+  const shareRecipe = async () => {
     if (!selectedUser) return
 
     try {
-      const response = await fetch(`/api/shopping-lists/${listId}/share`, {
+      const response = await fetch(`/api/recipes/${recipeId}/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,10 +140,10 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
 
   const removeShare = async (shareId: string, userId: string) => {
     haptics.tap()
-    if (!confirm('Вы уверены, что хотите отменить доступ к списку?')) return
+    if (!confirm('Вы уверены, что хотите отменить доступ к рецепту?')) return
 
     try {
-      const response = await fetch(`/api/shopping-lists/${listId}/share?userId=${userId}`, {
+      const response = await fetch(`/api/recipes/${recipeId}/share?userId=${userId}`, {
         method: 'DELETE',
       })
 
@@ -169,9 +169,9 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Поделиться списком</DialogTitle>
+          <DialogTitle>Поделиться рецептом</DialogTitle>
           <DialogDescription className="truncate">
-            &quot;{listName}&quot;
+            &quot;{recipeTitle}&quot;
           </DialogDescription>
         </DialogHeader>
 
@@ -227,7 +227,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
             {/* Кнопка поделиться */}
             {selectedUser && (
               <Button
-                onClick={shareList}
+                onClick={shareRecipe}
                 className="w-full"
               >
                 Поделиться с {selectedUser.name || selectedUser.username}
@@ -247,7 +247,7 @@ export function ShareModal({ listId, listName, isOpen, onClose }: ShareModalProp
               </div>
             ) : shares.length === 0 ? (
               <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-                Список пока недоступен другим пользователям
+                Рецепт пока недоступен другим пользователям
               </div>
             ) : (
               <div className="space-y-2">

@@ -23,18 +23,20 @@ export function ServiceWorkerProvider() {
           }
         })
 
-        wb.register().then((registration: ServiceWorkerRegistration) => {
-          console.log('✅ Service Worker зарегистрирован:', registration.scope)
+        wb.register()
+          .then(() => {
+            console.log('✅ Service Worker зарегистрирован')
 
-          // Проверяем, активировался ли SW
-          if (navigator.serviceWorker.controller) {
-            console.log('✅ Service Worker активен и контролирует страницу')
-          } else {
-            console.log('⚠️ Service Worker зарегистрирован, но ещё не контролирует страницу. Требуется перезагрузка.')
-          }
-        }).catch((error: Error) => {
-          console.error('❌ Ошибка регистрации Service Worker:', error)
-        })
+            // Проверяем, активировался ли SW
+            if (navigator.serviceWorker.controller) {
+              console.log('✅ Service Worker активен и контролирует страницу')
+            } else {
+              console.log('⚠️ Service Worker зарегистрирован, но ещё не контролирует страницу. Требуется перезагрузка.')
+            }
+          })
+          .catch((error: Error) => {
+            console.error('❌ Ошибка регистрации Service Worker:', error)
+          })
       } else {
         // Fallback: прямая регистрация без workbox
         navigator.serviceWorker.register('/sw.js', { scope: '/' })
@@ -104,6 +106,10 @@ export function ServiceWorkerProvider() {
 // Расширение типов для window
 declare global {
   interface Window {
-    workbox?: any
+    workbox?: {
+      register: () => Promise<void>
+      addEventListener: (event: string, handler: () => void) => void
+      messageSW: (message: unknown) => Promise<unknown>
+    }
   }
 }

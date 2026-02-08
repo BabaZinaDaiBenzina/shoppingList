@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, ingredients, instructions, cookingTime, servings } = body
+    const { title, description, ingredients, instructions, cookingTime, servings, category } = body
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -52,11 +52,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!instructions || !instructions.trim()) {
-      return NextResponse.json(
-        { error: 'Добавьте инструкции приготовления' },
-        { status: 400 }
-      )
+    // Валидация формата ингредиентов
+    for (const ingredient of ingredients) {
+      if (!ingredient.productId && !ingredient.name) {
+        return NextResponse.json(
+          { error: 'Каждый ингредиент должен иметь productId или name' },
+          { status: 400 }
+        )
+      }
+      if (typeof ingredient.quantity !== 'number' || ingredient.quantity < 0) {
+        return NextResponse.json(
+          { error: 'Количество должно быть числом >= 0' },
+          { status: 400 }
+        )
+      }
     }
 
     const recipe = await prisma.recipe.create({
@@ -65,9 +74,10 @@ export async function POST(request: NextRequest) {
         title: title.trim(),
         description: description?.trim() || null,
         ingredients: JSON.stringify(ingredients),
-        instructions: instructions.trim(),
+        instructions: instructions?.trim() || null,
         cookingTime: cookingTime || null,
         servings: servings || null,
+        category: category || 'OTHER',
       },
     })
 

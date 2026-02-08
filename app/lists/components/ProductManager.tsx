@@ -12,21 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Edit, Trash2 } from "lucide-react";
 import { haptics } from "@/lib/utils/haptic";
-
-interface Category {
-  id: string;
-  name: string;
-  icon: string | null;
-  sortOrder: number;
-  products?: Product[];
-}
-
-interface Product {
-  id: string;
-  name: string;
-  unit: string | null;
-  categoryId: string;
-}
+import type { CategoryWithProducts, Product } from "@/types";
 
 interface ProductManagerProps {
   isOpen: boolean;
@@ -34,14 +20,14 @@ interface ProductManagerProps {
 }
 
 export function ProductManager({ isOpen, onClose }: ProductManagerProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryWithProducts[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   // Forms
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryWithProducts | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [categoryForm, setCategoryForm] = useState({
@@ -91,7 +77,7 @@ export function ProductManager({ isOpen, onClose }: ProductManagerProps) {
     setShowProductForm(false);
   };
 
-  const startEditCategory = (category: Category) => {
+  const startEditCategory = (category: CategoryWithProducts) => {
     haptics.tap();
     setEditingCategory(category);
     setCategoryForm({

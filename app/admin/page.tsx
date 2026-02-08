@@ -3,44 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-
-interface Item {
-  id: string
-  name: string
-  quantity: number
-  purchased: boolean
-}
-
-interface ShoppingList {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  _count: {
-    items: number
-  }
-}
-
-interface User {
-  id: string
-  email: string
-  username: string
-  name: string | null
-  role: string
-  createdAt: string
-  updatedAt: string
-  _count: {
-    shoppingLists: number
-    recipes: number
-  }
-  shoppingLists: ShoppingList[]
-}
+import type { UserWithLists } from '@/types'
 
 export default function AdminPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const router = useRouter()
 
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserWithLists[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
@@ -140,8 +109,18 @@ export default function AdminPage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Панель администратора</h1>
-          <p className="text-gray-600">Управление пользователями и списками покупок</p>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">Панель администратора</h1>
+              <p className="text-gray-600">Управление пользователями и списками покупок</p>
+            </div>
+            <button
+              onClick={() => router.push('/admin/roadmap')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              📋 Roadmap
+            </button>
+          </div>
         </div>
 
         {/* Error message */}
@@ -275,7 +254,7 @@ export default function AdminPage() {
               Подтверждение удаления
             </h3>
             <p className="text-gray-600 mb-6">
-              Вы уверены, что хотите удалить {deleteConfirm.type === 'user' ? 'пользователя' : 'список'} "<strong>{deleteConfirm.name}</strong>"?
+              Вы уверены, что хотите удалить {deleteConfirm.type === 'user' ? 'пользователя' : 'список'} &quot;<strong>{deleteConfirm.name}</strong>&quot;?
               {deleteConfirm.type === 'user' && (
                 <span className="block mt-2 text-red-600">
                   Все данные пользователя (списки, рецепты) будут безвозвратно удалены!

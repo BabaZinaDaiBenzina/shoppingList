@@ -4,10 +4,10 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { formatQuantity } from '@/lib/utils/pluralize'
 import { haptics } from '@/lib/utils/haptic'
 import { Badge } from '@/components/ui/badge'
-import { Item, ShoppingList, Category } from '@/types'
+import { ItemWithProduct, ShoppingListUI, Category } from '@/types'
 
 interface GroupedShoppingListCardProps {
-  list: ShoppingList
+  list: ShoppingListUI
   isExpanded: boolean
   onToggle: (listId: string) => void
   onDelete: (listId: string) => void
@@ -62,7 +62,7 @@ export function GroupedShoppingListCard({
   const [editUnit, setEditUnit] = useState('')
   const [showAddItemForm, setShowAddItemForm] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const items = list.items || []
+  const items = (list.items || []) as ItemWithProduct[]
 
   // Используем purchasedCount из API если товары не загружены, иначе считаем из items
   const totalItems = items.length > 0 ? items.length : list._count?.items || 0
@@ -100,7 +100,7 @@ export function GroupedShoppingListCard({
 
       acc[categoryId].items.push(item)
       return acc
-    }, {} as Record<string, { id: string; name: string; icon: string; items: Item[] }>)
+    }, {} as Record<string, { id: string; name: string; icon: string; items: ItemWithProduct[] }>)
   }, [items])
 
   // Сортируем товары: сначала не купленные, потом купленные
@@ -152,7 +152,7 @@ export function GroupedShoppingListCard({
     onAddItem(list.id, trimmedName, 1, undefined, undefined, selectedCategoryId || undefined)
   }
 
-  const startEditing = (item: Item) => {
+  const startEditing = (item: ItemWithProduct) => {
     setEditingItemId(item.id)
     setEditQuantity(item.quantity)
     setEditUnit(item.unit || '')

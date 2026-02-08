@@ -13,32 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Plus, Minus, ShoppingCart } from "lucide-react";
 import { formatQuantity } from "@/lib/utils/pluralize";
 import { haptics } from "@/lib/utils/haptic";
-
-interface Category {
-  id: string;
-  name: string;
-  icon: string | null;
-  sortOrder: number;
-  _count?: {
-    products: number;
-  };
-}
-
-interface Product {
-  id: string;
-  name: string;
-  unit: string | null;
-  category: {
-    id: string;
-    name: string;
-    icon: string | null;
-  };
-}
+import type { ProductWithCategory, CategoryWithCount } from "@/types";
 
 interface ProductSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddProduct: (product: Product, quantity: number) => void;
+  onAddProduct: (product: ProductWithCategory, quantity: number) => void;
   isItemInList: (productName: string) => boolean;
   hasOpenList: boolean;
 }
@@ -50,8 +30,8 @@ export function ProductSelector({
   isItemInList,
   hasOpenList,
 }: ProductSelectorProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryWithCount[]>([]);
+  const [products, setProducts] = useState<ProductWithCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +57,7 @@ export function ProductSelector({
       const data = await response.json();
       if (response.ok) {
         const sorted = data.categories.sort(
-          (a: Category, b: Category) => a.sortOrder - b.sortOrder,
+          (a: CategoryWithCount, b: CategoryWithCount) => a.sortOrder - b.sortOrder,
         );
         setCategories(sorted);
       }
@@ -110,7 +90,7 @@ export function ProductSelector({
     }
   };
 
-  const handleAddProduct = (product: Product) => {
+  const handleAddProduct = (product: ProductWithCategory) => {
     const quantity = quantities[product.id] || 1;
     onAddProduct(product, quantity);
     setQuantities((prev) => ({ ...prev, [product.id]: 1 }));

@@ -1,16 +1,16 @@
 'use client'
 
 import { GroupedShoppingListCard } from './GroupedShoppingListCard'
-import { ShoppingList, Category } from '@/types'
+import { ShoppingListUI, Category } from '@/types'
 
 interface ListsContentProps {
-  filteredShoppingLists: ShoppingList[]
-  shoppingLists: ShoppingList[]
+  filteredShoppingLists: ShoppingListUI[]
+  shoppingLists: ShoppingListUI[]
   expandedListId: string | null
   setExpandedListId: (id: string | null) => void
   deleteList: (id: string) => void
   addItem: (listId: string, name: string) => Promise<void>
-  updateItem: (listId: string, itemId: string, updates: any) => Promise<void>
+  updateItem: (listId: string, itemId: string, updates: { quantity?: number; unit?: string }) => Promise<void>
   toggleItem: (listId: string, itemId: string) => Promise<void>
   deleteItem: (listId: string, itemId: string) => Promise<void>
   deselectAll: (listId: string) => Promise<void>

@@ -1,5 +1,7 @@
 // IndexedDB сервис для офлайн хранения данных
 
+import type { ShoppingListUI, ItemUI, User } from '@/types'
+
 const DB_NAME = 'ShoppingListDB'
 const DB_VERSION = 2  // Увеличена версия для миграции
 
@@ -11,31 +13,12 @@ const STORES = {
   USER: 'user' // Данные пользователя
 }
 
-interface ShoppingList {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-  items: any[]
-  isShared?: boolean
-  isOwner?: boolean
-  user?: any
-}
-
-interface Item {
-  id: string
-  name: string
-  quantity: number
-  purchased: boolean
-  product?: any
-}
-
 interface QueueOperation {
   id: string
   type: 'CREATE' | 'UPDATE' | 'DELETE'
   endpoint: string
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
-  data?: any
+  data?: unknown
   timestamp: number
   retryCount: number
 }
@@ -89,17 +72,17 @@ class IndexedDBService {
 
   // === Shopping Lists ===
 
-  async getAllShoppingLists(): Promise<ShoppingList[]> {
+  async getAllShoppingLists(): Promise<ShoppingListUI[]> {
     if (!this.db) await this.init()
-    return this.getAll<ShoppingList>(STORES.SHOPPING_LISTS)
+    return this.getAll<ShoppingListUI>(STORES.SHOPPING_LISTS)
   }
 
-  async getShoppingList(id: string): Promise<ShoppingList | undefined> {
+  async getShoppingList(id: string): Promise<ShoppingListUI | undefined> {
     if (!this.db) await this.init()
-    return this.get<ShoppingList>(STORES.SHOPPING_LISTS, id)
+    return this.get<ShoppingListUI>(STORES.SHOPPING_LISTS, id)
   }
 
-  async saveShoppingList(list: ShoppingList): Promise<void> {
+  async saveShoppingList(list: ShoppingListUI): Promise<void> {
     if (!this.db) await this.init()
     return this.put(STORES.SHOPPING_LISTS, list)
   }
@@ -111,7 +94,7 @@ class IndexedDBService {
 
   // === Items ===
 
-  async saveItem(item: Item): Promise<void> {
+  async saveItem(item: ItemUI): Promise<void> {
     if (!this.db) await this.init()
     return this.put(STORES.ITEMS, item)
   }
@@ -159,12 +142,12 @@ class IndexedDBService {
 
   // === User ===
 
-  async saveUser(user: any): Promise<void> {
+  async saveUser(user: User): Promise<void> {
     if (!this.db) await this.init()
     return this.put(STORES.USER, { ...user, id: 'current' })
   }
 
-  async getUser(): Promise<any> {
+  async getUser(): Promise<User | undefined> {
     if (!this.db) await this.init()
     return this.get(STORES.USER, 'current')
   }
@@ -198,7 +181,7 @@ class IndexedDBService {
     })
   }
 
-  private async put(storeName: string, data: any): Promise<void> {
+  private async put(storeName: string, data: object): Promise<void> {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
@@ -210,7 +193,7 @@ class IndexedDBService {
       }
 
       const keyPath = store.keyPath
-      if (keyPath && !data[keyPath as string]) {
+      if (keyPath && !(keyPath as string in data)) {
         reject(new Error(`Missing key path "${keyPath}" in data for store ${storeName}`))
         return
       }

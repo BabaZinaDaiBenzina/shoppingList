@@ -21,7 +21,7 @@ function getTokenFromCookie(request: NextRequest): string | null {
   const cookies = cookie.split(';').map(c => c.trim())
 
   // Сначала пробуем новую куку access_token
-  let accessCookie = cookies.find(c => c.startsWith(`${ACCESS_TOKEN_COOKIE}=`))
+  const accessCookie = cookies.find(c => c.startsWith(`${ACCESS_TOKEN_COOKIE}=`))
 
   if (accessCookie) {
     return accessCookie.substring(ACCESS_TOKEN_COOKIE.length + 1)
