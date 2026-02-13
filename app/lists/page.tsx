@@ -16,6 +16,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { FAB } from "@/components/FAB";
 import { StickyFooter } from "@/components/StickyFooter";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { SwipeHint } from "@/components/SwipeHint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -95,6 +96,9 @@ export default function ListsPage() {
     listId: string;
     itemId: string;
   } | null>(null);
+
+  // Swipe hint - показываем один раз
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
 
   // Refs for keyboard shortcuts
   const newListNameInputRef = useRef<HTMLInputElement>(null);
@@ -204,6 +208,14 @@ export default function ListsPage() {
       abortController.abort();
     };
   }, [isAuthenticated]);
+
+  // Swipe hint - показываем один раз
+  useEffect(() => {
+    const hasSeenSwipeHint = localStorage.getItem('swipeHintSeen')
+    if (!hasSeenSwipeHint) {
+      setShowSwipeHint(true)
+    }
+  }, [])
 
   // Scroll to top button
   useEffect(() => {
@@ -859,6 +871,24 @@ export default function ListsPage() {
     confirmDeleteItem(listId, itemId);
   };
 
+  const copyItem = async (listId: string, itemId: string) => {
+    // Находим список и товар
+    const list = shoppingLists.find((l) => l.id === listId);
+    const item = list?.items?.find((i) => i.id === itemId);
+
+    if (!item) return;
+
+    // Копируем товар с теми же параметрами
+    await addItem(
+      listId,
+      item.name,
+      item.quantity,
+      item.unit || undefined,
+      item.productId || undefined,
+      item.product?.categoryId || undefined,
+    );
+  };
+
   const updateItem = async (
     listId: string,
     itemId: string,
@@ -1160,6 +1190,16 @@ export default function ListsPage() {
       {/* Offline Indicator */}
       <OfflineIndicator />
 
+      {/* Swipe Hint */}
+      {showSwipeHint && (
+        <SwipeHint
+          onDismiss={() => {
+            localStorage.setItem('swipeHintSeen', 'true')
+            setShowSwipeHint(false)
+          }}
+        />
+      )}
+
       {/* Индикатор обновления */}
       {isRefreshing && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium">
@@ -1344,6 +1384,7 @@ export default function ListsPage() {
                     }
                     onAddItem={addItem}
                     onUpdateItem={updateItem}
+                    onCopyItem={copyItem}
                     onToggleItem={toggleItem}
                     onDeleteItem={deleteItem}
                     onDeselectAll={deselectAll}
@@ -1399,6 +1440,7 @@ export default function ListsPage() {
                     }
                     onAddItem={addItem}
                     onUpdateItem={updateItem}
+                    onCopyItem={copyItem}
                     onToggleItem={toggleItem}
                     onDeleteItem={deleteItem}
                     onDeselectAll={deselectAll}
@@ -1454,6 +1496,7 @@ export default function ListsPage() {
                     }
                     onAddItem={addItem}
                     onUpdateItem={updateItem}
+                    onCopyItem={copyItem}
                     onToggleItem={toggleItem}
                     onDeleteItem={deleteItem}
                     onDeselectAll={deselectAll}

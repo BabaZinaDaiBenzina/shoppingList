@@ -15,6 +15,7 @@ interface GroupedShoppingListCardProps {
   onSaveAsTemplate?: (listId: string) => void
   onAddItem: (listId: string, itemName: string, quantity?: number, unit?: string, productId?: string, categoryId?: string) => void
   onUpdateItem?: (listId: string, itemId: string, data: { quantity?: number; unit?: string }) => void
+  onCopyItem?: (listId: string, itemId: string) => void
   onToggleItem: (listId: string, itemId: string) => void
   onDeleteItem: (listId: string, itemId: string) => void
   onDeselectAll: (listId: string) => void

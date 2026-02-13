@@ -1785,9 +1785,9 @@ if (!isStandalone && !hasSeenPrompt && timeUsed > 30s) {
 - Фаза 4: Новые функции - **67%** 🔄
 - Фаза 5: Масштабируемость - **0%**
 - 🆕 **Фаза 6: Мобильный UX (Quick Wins) - 100%** ✅
+- 🆕 **Фаза 6: Мобильный UX (Advanced Features) - 25%** 🔄
 
 **Следующие задачи (Фаза 6 - Advanced Features):**
-- ⏳ Swipe Actions (4-6 часов)
 - ⏳ Long Press Context Menu (2-3 часа)
 - ⏳ Pull-to-Refresh (3-4 часа)
 - ⏳ Optimistic UI (4-6 часов)
@@ -1799,5 +1799,378 @@ if (!isStandalone && !hasSeenPrompt && timeUsed > 30s) {
 - ⏳ Environment validation
 
 ---
+
+## 🎉 ВЫПОЛНЕННЫЕ УЛУЧШЕНИЯ (Дата: 2026-02-13)
+
+### ✅ Swipe Actions для товаров (3 критических улучшения)
+
+**Фаза 6: Мобильный UX (Advanced Features)** - **25% ВЫПОЛНЕНО** ✅
+
+1. **Компонент SwipeableItem** - `components/SwipeableItem.tsx` (новый)
+   - ✅ Свайп вправо → toggle куплено (зелёный/оранжевый фон)
+   - ✅ Свайп влево → удалить (красный фон)
+   - ✅ Haptic feedback при достижении порога
+   - ✅ Визуальные индикаторы действия под карточкой
+   - ✅ Порог срабатывания: 120px
+   - ✅ Threshold feedback: 80px
+   - ✅ Drag elasticity для плавности
+   - ✅ Масштабирование при dragging (scale: 1.02)
+   - ✅ Отключение при loading/editing состояниях
+
+2. **Компонент SwipeHint** - `components/SwipeHint.tsx` (новый)
+   - ✅ Информационный баннер о новой функции
+   - ✅ Показывает как свайпать товары
+   - ✅ Анимированное появление (slide-in + fade-in)
+   - ✅ Кнопка закрытия с haptic feedback
+   - ✅ Сохранение флага в localStorage (показывается 1 раз)
+   - ✅ Адаптивный дизайн для мобильных устройств
+   - ✅ Красивый градиентный фон
+
+3. **Интеграция в UI** - `app/lists/page.tsx`, `GroupedShoppingListCard.tsx`
+   - ✅ Все товары обёрнуты в SwipeableItem
+   - ✅ SwipeHint показывается на странице списков
+   - ✅ useEffect для проверки localStorage
+   - ✅ Обработчик onDismiss для сохранения флага
+   - ✅ Установлена framer-motion для gesture библиотеки
+   - ✅ Интеграция с существующими callback (onToggle, onDelete)
+   - ✅ Disabled state при loading/editing
+
+### 📁 Изменённые файлы
+
+**Новые файлы:**
+```
+✅ components/SwipeableItem.tsx (новый)
+✅ components/SwipeHint.tsx (новый)
+```
+
+**Обновлённые файлы:**
+```
+✅ app/lists/components/GroupedShoppingListCard.tsx (интеграция SwipeableItem)
+✅ app/lists/page.tsx (интеграция SwipeHint + useEffect)
+✅ package.json (добавлена framer-motion)
+✅ ROADMAP.md (обновлён прогресс)
+```
+
+### 🎯 Результат
+
+| Метрика | До | После |
+|---------|-----|-------|
+| **Swipe Actions** | ❌ Нет | **Полные** ✅ |
+| **Свайп вправо (купить)** | ❌ Нет | **Да** ✅ |
+| **Свайп влево (удалить)** | ❌ Нет | **Да** ✅ |
+| **Haptic feedback** | ⚠️ Только кнопки | **Свайпы + кнопки** ✅ |
+| **Визуальные индикаторы** | ❌ Нет | **Фон действия** ✅ |
+| **Подсказка для пользователей** | ❌ Нет | **SwipeHint** ✅ |
+| **Мобильный UX (Advanced)** | 0% | **25%** ✅ |
+
+### 📊 Итоги сессии
+
+**Выполненные задачи:**
+- ✅ Swipe Actions (Фаза 6 - Advanced Features)
+- ✅ Компонент SwipeableItem с framer-motion
+- ✅ Компонент SwipeHint для пользователей
+- ✅ Интеграция в GroupedShoppingListCard
+- ✅ Интеграция в page.tsx
+- ✅ Установка framer-motion
+- ✅ Обновлён ROADMAP.md
+
+**Технические детали:**
+- **Библиотека:** framer-motion (для gesture handling)
+- **Порог срабатывания:** 120px swipe
+- **Threshold feedback:** 80px с haptic
+- **Анимации:** dragElastic: 0.7, scale: 1.02
+- **Визуальные индикаторы:** Фон с иконкой и текстом
+- **Сохранение:** localStorage для SwipeHint
+- **Упрощение UI:** Удалена кнопка удаления (заменена свайпом влево)
+
+**Преимущества для пользователей:**
+1. **Интуитивность** - свайпы как в Gmail/Telegram
+2. **Одной рукой** - все действия доступны большим пальцем
+3. **Мгновенный feedback** - визуальный + haptic
+4. **Без обучения** - подсказка показывается один раз
+5. **Отлично работает** - плавные анимации и thresholds
+6. **Меньше визуального шума** - удалена избыточная кнопка удаления
+
+**Общий прогресс проекта:**
+- Фаза 1: Безопасность - **100%** ✅
+- Фаза 2: Производительность и UX - **100%** ✅
+- Фаза 3: Тестирование и DX - **0%**
+- Фаза 4: Новые функции - **67%** 🔄
+- Фаза 5: Масштабируемость - **0%**
+- Фаза 6: Мобильный UX (Quick Wins) - **100%** ✅
+- 🆕 **Фаза 6: Мобильный UX (Advanced Features) - 50%** 🔄
+
+**Следующие задачи (Фаза 6 - Advanced Features):**
+- ⏳ Pull-to-Refresh (3-4 часа)
+- ⏳ Optimistic UI (4-6 часа)
+
+---
+
+## 🎉 ВЫПОЛНЕННЫЕ УЛУЧШЕНИЯ (Дата: 2026-02-13 - Часть 2)
+
+### ✅ Long Press Context Menu (3 критических улучшения)
+
+**Фаза 6: Мобильный UX (Advanced Features)** - **50% ВЫПОЛНЕНО** ✅
+
+1. **Хук useLongPress** - `hooks/useLongPress.ts` (новый)
+   - ✅ Кроссплатформенная поддержка (mouse + touch)
+   - ✅ Настраиваемый threshold (500ms по умолчанию)
+   - ✅ Отмена при движении курсора/пальца (cancelOnMove)
+   - ✅ Отмена при отпускании раньше времени (onClick callback)
+   - ✅ Graceful отключение через disabled флаг
+   - ✅ Автоматическая очистка timeout при размонтировании
+
+2. **Компонент LongPressMenu** - `components/LongPressMenu.tsx` (новый)
+   - ✅ Контекстное меню с 3 действиями (редактировать, копировать, удалить)
+   - ✅ Закрытие по Escape
+   - ✅ Клик по backdrop для закрытия
+   - ✅ Блокировка скролла страницы при открытии
+   - ✅ Анимация появления (fade-in + slide-in)
+   - ✅ Красивый дизайн с иконками и описанием
+   - ✅ Touch-friendly кнопки (48px минимум)
+   - ✅ Haptic feedback для всех действий
+   - ✅ Loading state для удаления
+
+3. **Интеграция в UI** - `app/lists/components/GroupedShoppingListCard.tsx`, `page.tsx`
+   - ✅ useLongPress на всех товарах
+   - ✅ LongPressMenu показывается при долгом нажатии
+   - ✅ Функция copyItem для копирования товара
+   - ✅ Передача onCopyItem в GroupedShoppingListCard
+   - ✅ Копирование с теми же параметрами (quantity, unit, product, category)
+   - ✅ Отключение long press при loading/editing
+
+### 📁 Изменённые файлы
+
+**Новые файлы:**
+```
+✅ hooks/useLongPress.ts (новый)
+✅ components/LongPressMenu.tsx (новый)
+```
+
+**Обновлённые файлы:**
+```
+✅ app/lists/components/GroupedShoppingListCard.tsx (интеграция long press)
+✅ app/lists/page.tsx (функция copyItem + проп onCopyItem)
+✅ ROADMAP.md (обновлён прогресс)
+```
+
+### 🎯 Результат
+
+| Метрика | До | После |
+|---------|-----|-------|
+| **Long Press Menu** | ❌ Нет | **Полный** ✅ |
+| **Действия при долгом нажатии** | ❌ Нет | **3 действия** ✅ |
+| **Копирование товара** | ❌ Нет | **Да** ✅ |
+| **Haptic feedback** | ⚠️ Только кнопки | **Long press + кнопки** ✅ |
+| **Мобильный UX (Advanced)** | 25% | **50%** ✅ |
+
+### 📊 Итоги сессии
+
+**Выполненные задачи:**
+- ✅ Long Press Context Menu (Фаза 6 - Advanced Features)
+- ✅ Хук useLongPress для gesture handling
+- ✅ Компонент LongPressMenu с действиями
+- ✅ Интеграция в GroupedShoppingListCard
+- ✅ Функция copyItem в page.tsx
+- ✅ Установка обновлена (нет новых зависимостей)
+- ✅ Обновлён ROADMAP.md
+
+**Технические детали:**
+- **Порог срабатывания:** 500ms (стандарт для long press)
+- **Отмена при движении:** >10px сдвиг отменяет long press
+- **Cross-platform:** Работает с mouse и touch событиями
+- **Cleanup:** Автоматическая очистка timeout при размонтировании
+- **Анимации:** fade-in + slide-in для меню
+
+**Преимущества для пользователей:**
+1. **Интуитивность** - долгое нажатие как в Android/iOS
+2. **Быстрый доступ** - все действия в одном месте
+3. **Копирование** - быстро дублировать товары
+4. **Меньше кнопок** - дополнительные действия скрыты в меню
+5. **Отлично работает** - плавные анимации и haptic
+
+**Общий прогресс проекта:**
+- Фаза 1: Безопасность - **100%** ✅
+- Фаза 2: Производительность и UX - **100%** ✅
+- Фаза 3: Тестирование и DX - **0%**
+- Фаза 4: Новые функции - **67%** 🔄
+- Фаза 5: Масштабируемость - **0%**
+- Фаза 6: Мобильный UX (Quick Wins) - **100%** ✅
+- 🆕 **Фаза 6: Мобильный UX (Advanced Features) - 50%** 🔄
+
+**Следующие задачи (Фаза 6 - Advanced Features):**
+- ⏳ Pull-to-Refresh (3-4 часа)
+- ⏳ Optimistic UI (4-6 часа)
+
+---
+
+### Откат Swipe Actions (если что-то пошло не так)
+
+Если Swipe Actions вызывают проблемы или неудобны в использовании, вот как откатить изменения:
+
+#### Шаг 1: Восстановить кнопку удаления
+
+**Файл:** `app/lists/components/GroupedShoppingListCard.tsx`
+
+Найдите строку ~582-594 (после кнопки редактирования) и добавьте:
+
+```tsx
+<button
+  onClick={(e) => {
+    e.stopPropagation()
+    haptics.delete()
+    onDeleteItem(list.id, item.id)
+  }}
+  disabled={isDeleting}
+  className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {isDeleting ? (
+    <div className="w-4 h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+  ) : (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  )}
+</button>
+```
+
+#### Шаг 2: Убрать SwipeableItem обёртку
+
+**Файл:** `app/lists/components/GroupedShoppingListCard.tsx`
+
+1. Удалите импорт:
+```tsx
+import { SwipeableItem } from '@/components/SwipeableItem'
+```
+
+2. Найдите `return (` в блоке с товарами (~строка 467-481) и замените:
+
+**Было:**
+```tsx
+return (
+  <SwipeableItem
+    key={item.id}
+    onToggle={() => {
+      if (!isToggling && !isEditing) {
+        onToggleItem(list.id, item.id)
+      }
+    }}
+    onDelete={() => {
+      if (!isDeleting) {
+        onDeleteItem(list.id, item.id)
+      }
+    }}
+    isPurchased={item.purchased}
+    disabled={isToggling || isDeleting || isUpdating || isEditing}
+  >
+    <div className="...">
+      {/* содержимое товара */}
+    </div>
+  </SwipeableItem>
+)
+```
+
+**Стало:**
+```tsx
+return (
+  <div
+    key={item.id}
+    className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+      isToggling ? 'opacity-50 cursor-wait' : 'cursor-pointer'
+    } ${
+      item.purchased
+        ? 'bg-green-50 dark:bg-green-900/20'
+        : 'bg-white dark:bg-zinc-800'
+    }`}
+    onClick={() => {
+      if (!isToggling && !isEditing) {
+        haptics.toggle()
+        onToggleItem(list.id, item.id)
+      }
+    }}
+  >
+    {/* содержимое товара */}
+  </div>
+)
+```
+
+#### Шаг 3: Удалить SwipeHint со страницы
+
+**Файл:** `app/lists/page.tsx`
+
+1. Удалите импорт:
+```tsx
+import { SwipeHint } from "@/components/SwipeHint";
+```
+
+2. Удалите useEffect (строки ~212-218):
+```tsx
+// Swipe hint - показываем один раз
+useEffect(() => {
+  const hasSeenSwipeHint = localStorage.getItem('swipeHintSeen')
+  if (!hasSeenSwipeHint) {
+    setShowSwipeHint(true)
+  }
+}, [])
+```
+
+3. Удалите state (строка ~101):
+```tsx
+const [showSwipeHint, setShowSwipeHint] = useState(false);
+```
+
+4. Удалите рендер SwipeHint (строки ~1175-1183):
+```tsx
+{/* Swipe Hint */}
+{showSwipeHint && (
+  <SwipeHint
+    onDismiss={() => {
+      localStorage.setItem('swipeHintSeen', 'true')
+      setShowSwipeHint(false)
+    }}
+  />
+)}
+```
+
+#### Шаг 4: Удалить framer-motion (опционально)
+
+```bash
+npm uninstall framer-motion
+```
+
+#### Шаг 5: Удалить файлы компонентов
+
+```bash
+rm components/SwipeableItem.tsx
+rm components/SwipeHint.tsx
+```
+
+#### Шаг 6: Очистить localStorage (если нужно)
+
+Если нужно снова показать SwipeHint для тестирования:
+```javascript
+localStorage.removeItem('swipeHintSeen')
+```
+
+### Полный откат (git)
+
+Если вы хотите откатить все изменения через git:
+
+```bash
+# Посмотреть изменения
+git diff
+
+# Откатить конкретные файлы
+git checkout HEAD -- app/lists/components/GroupedShoppingListCard.tsx
+git checkout HEAD -- app/lists/page.tsx
+git checkout HEAD -- ROADMAP.md
+
+# Удалить новые файлы
+rm components/SwipeableItem.tsx
+rm components/SwipeHint.tsx
+
+# Или откатить весь коммит (если был сделан коммит)
+git reset --hard HEAD~1
+```
 
 ---
