@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { haptics } from "@/lib/utils/haptic";
 import { useOfflineData } from "@/hooks/useOfflineData";
+import { indexedDB } from "@/lib/services/indexedDB";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Product, ShoppingListUI, Category } from "@/types";
 
@@ -266,6 +267,35 @@ export default function ListsPage() {
     }
   }, [error]);
 
+  // Слушаем события синхронизации для обновления UI
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleSync = async () => {
+      // Перезагружаем списки из IndexedDB после синхронизации
+      if (isInitialized) {
+        try {
+          const offlineLists = await getOfflineLists();
+          setShoppingLists(offlineLists as ShoppingListUI[]);
+          console.log('🔄 UI обновлён после синхронизации');
+        } catch (err) {
+          console.error('Ошибка обновления UI после синхронизации:', err);
+        }
+      }
+    };
+
+    // Подписываемся на custom event
+    const eventHandler = () => {
+      console.log('📨 Получено событие синхронизации');
+      handleSync();
+    };
+
+    window.addEventListener('shopping-lists-synced', eventHandler);
+
+    return () => {
+      window.removeEventListener('shopping-lists-synced', eventHandler);
+    };
+  }, [isAuthenticated, isInitialized, getOfflineLists]);
   // API calls
   const fetchShoppingLists = async (signal?: AbortSignal) => {
     try {
@@ -312,6 +342,29 @@ export default function ListsPage() {
     async (listId: string) => {
       if (!isAuthenticated) return;
 
+      if (!isOnline) {
+        // Офлайн режим: пробуем загрузить из IndexedDB
+        if (isInitialized) {
+          try {
+            const offlineList = await indexedDB.getShoppingList(listId);
+            if (offlineList) {
+              setShoppingLists((lists) =>
+                lists.map((list) =>
+                  list.id === listId ? offlineList : list,
+                ),
+              );
+              setError("Офлайн режим. Показаны локально сохраненные данные.");
+            } else {
+              setError("Список не найден в локальном хранилище");
+            }
+          } catch (err) {
+            console.error("Error loading from IndexedDB:", err);
+          }
+        }
+        return;
+      }
+
+      // Онлайн режим
       try {
         const response = await fetch(`/api/shopping-lists/${listId}`);
         const data = await response.json();
@@ -328,12 +381,31 @@ export default function ListsPage() {
         await saveOfflineList(data.shoppingList);
       } catch (err) {
         console.error("Error fetching list items:", err);
-        setError(
-          err instanceof Error ? err.message : "Ошибка при загрузке товаров",
-        );
+        // При ошибке сети пробуем загрузить из IndexedDB
+        if (isInitialized) {
+          try {
+            const offlineList = await indexedDB.getShoppingList(listId);
+            if (offlineList) {
+              setShoppingLists((lists) =>
+                lists.map((list) =>
+                  list.id === listId ? offlineList : list,
+                ),
+              );
+              setError("Ошибка сети. Показаны локально сохраненные данные.");
+            }
+          } catch (dbErr) {
+            setError(
+              err instanceof Error ? err.message : "Ошибка при загрузке товаров",
+            );
+          }
+        } else {
+          setError(
+            err instanceof Error ? err.message : "Ошибка при загрузке товаров",
+          );
+        }
       }
     },
-    [saveOfflineList, isAuthenticated],
+    [saveOfflineList, isAuthenticated, isOnline, isInitialized],
   );
 
   // Fetch list items when expanded (lazy loading)
@@ -798,6 +870,47 @@ export default function ListsPage() {
 
     setIsUpdatingItem((prev) => ({ ...prev, [itemKey]: true }));
 
+    // Находим товар и обновляем его локально
+    const list = shoppingLists.find((l) => l.id === listId);
+    const item = list?.items?.find((i) => i.id === itemId);
+
+    if (!item) return;
+
+    const updatedItem = { ...item, ...data };
+
+    // Обновляем UI сразу для отзывчивости
+    setShoppingLists((lists) =>
+      lists.map((list) =>
+        list.id === listId
+          ? {
+              ...list,
+              items: (list.items || []).map((item) =>
+                item.id === itemId ? updatedItem : item,
+              ),
+            } as ShoppingListUI
+          : list,
+      ) as ShoppingListUI[],
+    );
+
+    if (!isOnline) {
+      // Офлайн режим: сохраняем локально и добавляем в очередь
+      const updatedList = shoppingLists.find((l) => l.id === listId);
+      if (updatedList) {
+        const listWithUpdatedItem = {
+          ...updatedList,
+          items: (updatedList.items || []).map((i) =>
+            i.id === itemId ? updatedItem : i,
+          ),
+        };
+        await saveOfflineList(listWithUpdatedItem);
+      }
+
+      await enqueueOperation("UPDATE", `/api/items/${itemId}`, "PUT", data);
+      setError("Товар обновлен офлайн. Синхронизация при подключении к сети.");
+      setIsUpdatingItem((prev) => ({ ...prev, [itemKey]: false }));
+      return;
+    }
+
     // Онлайн режим
     try {
       const response = await fetch(`/api/items/${itemId}`, {
@@ -850,6 +963,36 @@ export default function ListsPage() {
 
     setIsDeselectAll((prev) => ({ ...prev, [listId]: true }));
 
+    // Находим список и обновляем все товары локально
+    const list = shoppingLists.find((l) => l.id === listId);
+    if (!list) return;
+
+    const updatedItems = (list.items || []).map((item) => ({
+      ...item,
+      purchased: false,
+    }));
+
+    // Обновляем UI сразу для отзывчивости
+    setShoppingLists((lists) =>
+      lists.map((list) =>
+        list.id === listId ? { ...list, items: updatedItems } : list,
+      ),
+    );
+
+    if (!isOnline) {
+      // Офлайн режим: сохраняем локально и добавляем в очередь
+      await saveOfflineList({ ...list, items: updatedItems });
+      await enqueueOperation(
+        "UPDATE",
+        `/api/shopping-lists/${listId}/deselect-all`,
+        "PATCH",
+      );
+      setError("Снято выделение офлайн. Синхронизация при подключении к сети.");
+      setIsDeselectAll((prev) => ({ ...prev, [listId]: false }));
+      return;
+    }
+
+    // Онлайн режим
     try {
       // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(
@@ -868,6 +1011,9 @@ export default function ListsPage() {
           list.id === listId ? { ...list, items: data.items } : list,
         ),
       );
+
+      // Сохраняем в IndexedDB
+      await saveOfflineList({ ...list, items: data.items });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Ошибка при снятии выделения",

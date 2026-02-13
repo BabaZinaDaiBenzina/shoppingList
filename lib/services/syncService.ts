@@ -18,7 +18,7 @@ interface SyncOperation {
   id: string
   type: 'CREATE' | 'UPDATE' | 'DELETE'
   endpoint: string
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   data?: unknown
   timestamp: number
   retryCount: number
@@ -45,6 +45,9 @@ class SyncService {
 
   // Флаг для отслеживания состояния
   private isInitialized: boolean = false
+
+  // Callbacks для уведомления об изменениях
+  private syncCallbacks: Set<() => void> = new Set()
 
   /**
    * Инициализация сервиса синхронизации
@@ -82,7 +85,7 @@ class SyncService {
   async enqueueOperation(
     type: 'CREATE' | 'UPDATE' | 'DELETE',
     endpoint: string,
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     data?: unknown
   ): Promise<void> {
     // Извлекаем информацию о ресурсе для блокировок
@@ -191,6 +194,14 @@ class SyncService {
           failed: failCount,
           conflicts: conflictCount,
         })
+
+        // Уведомляем подписчиков об изменениях
+        this.notifySyncListeners()
+
+        // Dispatch custom event для глобальной подписки
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('shopping-lists-synced'))
+        }
 
         return results
       } catch (error) {
@@ -452,6 +463,32 @@ class SyncService {
   async clearQueue(): Promise<void> {
     await indexedDB.clearQueue()
     logInfo('Очередь синхронизации очищена')
+  }
+
+  /**
+   * Подписаться на события синхронизации
+   * @returns Функция для отписки
+   */
+  onSync(callback: () => void): () => void {
+    this.syncCallbacks.add(callback)
+
+    // Возвращаем функцию для отписки
+    return () => {
+      this.syncCallbacks.delete(callback)
+    }
+  }
+
+  /**
+   * Уведомить всех подписчиков о синхронизации
+   */
+  private notifySyncListeners(): void {
+    for (const callback of this.syncCallbacks) {
+      try {
+        callback()
+      } catch (error) {
+        logError(error, { message: 'Ошибка в callback синхронизации' })
+      }
+    }
   }
 }
 
