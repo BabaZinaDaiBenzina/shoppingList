@@ -5,6 +5,7 @@ import { formatQuantity } from '@/lib/utils/pluralize'
 import { haptics } from '@/lib/utils/haptic'
 import { Badge } from '@/components/ui/badge'
 import { ItemWithProduct, ShoppingListUI, Category } from '@/types'
+import { SwipeableItem } from '@/components/SwipeableItem'
 
 interface GroupedShoppingListCardProps {
   list: ShoppingListUI
@@ -464,113 +465,115 @@ export function GroupedShoppingListCard({
                           const displayUnit = item.unit || item.product?.unit
 
                           return (
-                            <div
+                            <SwipeableItem
                               key={item.id}
-                              className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                                isToggling ? 'opacity-50 cursor-wait' : 'cursor-pointer'
-                              } ${
-                                item.purchased
-                                  ? 'bg-green-50 dark:bg-green-900/20'
-                                  : 'bg-white dark:bg-zinc-800'
-                              }`}
-                              onClick={() => {
+                              onToggle={() => {
                                 if (!isToggling && !isEditing) {
                                   haptics.toggle()
                                   onToggleItem(list.id, item.id)
                                 }
                               }}
+                              onDelete={() => onDeleteItem(list.id, item.id)}
+                              isPurchased={item.purchased}
+                              disabled={isToggling || isDeleting || isUpdating || isEditing}
                             >
-                              {/* Чекбокс */}
                               <div
-                                className={`flex-shrink-0 w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg border-2 flex items-center justify-center transition-colors ${
+                                className={`flex items-center gap-2 p-2 rounded-lg ${
                                   item.purchased
-                                    ? 'bg-green-500 border-green-500 text-white'
-                                    : 'border-zinc-300 dark:border-zinc-600'
+                                    ? 'bg-green-50 dark:bg-green-900/20'
+                                    : 'bg-white dark:bg-zinc-800'
                                 }`}
                               >
-                                {isToggling ? (
-                                  <div className="w-3 h-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                                ) : item.purchased ? (
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                ) : null}
-                              </div>
+                                {/* Чекбокс */}
+                                <div
+                                  className={`flex-shrink-0 w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg border-2 flex items-center justify-center transition-colors ${
+                                    item.purchased
+                                      ? 'bg-green-500 border-green-500 text-white'
+                                      : 'border-zinc-300 dark:border-zinc-600'
+                                  }`}
+                                >
+                                  {isToggling ? (
+                                    <div className="w-3 h-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                  ) : item.purchased ? (
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : null}
+                                </div>
 
-                              {/* Информация о товаре */}
-                              <div className="flex-1 min-w-0">
-                                {isEditing ? (
-                                  // Режим редактирования
-                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                    <input
-                                      type="number"
-                                      value={editQuantity}
-                                      onChange={(e) => setEditQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                                      onFocus={(e) => setTimeout(() => e.target.select(), 0)}
-                                      min="1"
-                                      className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={editUnit}
-                                      onChange={(e) => setEditUnit(e.target.value)}
-                                      onFocus={(e) => {
-                                        e.target.setSelectionRange(0, e.target.value.length)
-                                      }}
-                                      placeholder="шт"
-                                      className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
-                                    />
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        saveEdit(item.id)
-                                      }}
-                                      disabled={isUpdating}
-                                      className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20 rounded transition-colors disabled:opacity-50"
-                                    >
-                                      {isUpdating ? (
-                                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                                      ) : (
+                                {/* Информация о товаре */}
+                                <div className="flex-1 min-w-0">
+                                  {isEditing ? (
+                                    // Режим редактирования
+                                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                      <input
+                                        type="number"
+                                        value={editQuantity}
+                                        onChange={(e) => setEditQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                        onFocus={(e) => setTimeout(() => e.target.select(), 0)}
+                                        min="1"
+                                        className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={editUnit}
+                                        onChange={(e) => setEditUnit(e.target.value)}
+                                        onFocus={(e) => {
+                                          e.target.setSelectionRange(0, e.target.value.length)
+                                        }}
+                                        placeholder="шт"
+                                        className="w-16 px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white"
+                                      />
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          saveEdit(item.id)
+                                        }}
+                                        disabled={isUpdating}
+                                        className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20 rounded transition-colors disabled:opacity-50"
+                                      >
+                                        {isUpdating ? (
+                                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                        ) : (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          cancelEditing()
+                                        }}
+                                        className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                                      >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
-                                      )}
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        cancelEditing()
-                                      }}
-                                      className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                ) : (
-                                  // Режим просмотра
-                                  <div className={`flex items-center gap-2 ${item.purchased ? 'line-through' : ''}`}>
-                                    <span className="flex-1 min-w-0 text-sm md:text-base truncate text-zinc-900 dark:text-zinc-50">
-                                      {item.name}
-                                    </span>
-                                    {(item.quantity > 1 || displayUnit) && (
-                                      <span className="flex-shrink-0 text-sm text-zinc-600 dark:text-zinc-400 text-right">
-                                        {formatQuantity(item.quantity, displayUnit || null)}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    // Режим просмотра
+                                    <div className={`flex items-center gap-2 ${item.purchased ? 'line-through' : ''}`}>
+                                      <span className="flex-1 min-w-0 text-sm md:text-base truncate text-zinc-900 dark:text-zinc-50">
+                                        {item.name}
                                       </span>
-                                    )}
-                                    {item.purchased && (
-                                      <Badge variant="secondary" className="hidden sm:inline-flex bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 flex-shrink-0">
-                                        ✓ Куплено
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                                      {(item.quantity > 1 || displayUnit) && (
+                                        <span className="flex-shrink-0 text-sm text-zinc-600 dark:text-zinc-400 text-right">
+                                          {formatQuantity(item.quantity, displayUnit || null)}
+                                        </span>
+                                      )}
+                                      {item.purchased && (
+                                        <Badge variant="secondary" className="hidden sm:inline-flex bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 flex-shrink-0">
+                                          ✓ Куплено
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
 
-                              {/* Кнопки действий */}
-                              {!isEditing && (
-                                <>
+                                {/* Кнопка редактирования количества */}
+                                {!isEditing && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
@@ -584,26 +587,9 @@ export function GroupedShoppingListCard({
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                   </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      haptics.delete()
-                                      onDeleteItem(list.id, item.id)
-                                    }}
-                                    disabled={isDeleting}
-                                    className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {isDeleting ? (
-                                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
-                                    ) : (
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    )}
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                                )}
+                              </div>
+                            </SwipeableItem>
                           )
                         })}
                       </div>

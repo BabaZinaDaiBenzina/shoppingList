@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ShoppingListUI } from "@/types";
+import { SwipeableItem } from "@/components/SwipeableItem";
 
 interface ShoppingListCardProps {
   list: ShoppingListUI;
@@ -308,87 +309,63 @@ export function ShoppingListCard({
                 const isDeleting = isDeletingItem[itemKey];
 
                 return (
-                  <div
+                  <SwipeableItem
                     key={item.id}
-                    className={`flex items-center gap-3 p-3 md:p-4 rounded-lg transition-colors ${
-                      isToggling ? "opacity-50 cursor-wait" : "cursor-pointer"
-                    } ${
-                      item.purchased
-                        ? "bg-green-50 dark:bg-green-900/20"
-                        : "bg-zinc-50 dark:bg-zinc-700/50"
-                    }`}
-                    onClick={() =>
-                      !isToggling && onToggleItem(list.id, item.id)
-                    }
+                    onToggle={() => !isToggling && onToggleItem(list.id, item.id)}
+                    onDelete={() => onDeleteItem(list.id, item.id)}
+                    isPurchased={item.purchased}
+                    disabled={isToggling || isDeleting}
                   >
                     <div
-                      className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      className={`flex items-center gap-3 p-3 md:p-4 rounded-lg ${
                         item.purchased
-                          ? "bg-green-500 border-green-500 text-white"
-                          : "border-zinc-300 dark:border-zinc-600"
+                          ? "bg-green-50 dark:bg-green-900/20"
+                          : "bg-zinc-50 dark:bg-zinc-700/50"
                       }`}
                     >
-                      {isToggling ? (
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                      ) : item.purchased ? (
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      ) : null}
-                    </div>
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <span
-                        className={`text-base md:text-sm truncate ${
+                      <div
+                        className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
                           item.purchased
-                            ? "line-through text-zinc-500 dark:text-zinc-400"
-                            : "text-zinc-900 dark:text-zinc-50"
+                            ? "bg-green-500 border-green-500 text-white"
+                            : "border-zinc-300 dark:border-zinc-600"
                         }`}
                       >
-                        {item.name}
-                      </span>
-                      {item.quantity > 1 && (
-                        <span className="flex-shrink-0 text-sm text-zinc-500 dark:text-zinc-400">
-                          ×{item.quantity}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteItem(list.id, item.id);
-                      }}
-                      disabled={isDeleting}
-                      className="p-3 md:p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isDeleting ? (
-                        <div className="w-5 h-5 md:w-4 md:h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
-                      ) : (
-                        <svg
-                          className="w-5 h-5 md:w-4 md:h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                        {isToggling ? (
+                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                        ) : item.purchased ? (
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        ) : null}
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span
+                          className={`text-base md:text-sm truncate ${
+                            item.purchased
+                              ? "line-through text-zinc-500 dark:text-zinc-400"
+                              : "text-zinc-900 dark:text-zinc-50"
+                          }`}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+                          {item.name}
+                        </span>
+                        {item.quantity > 1 && (
+                          <span className="flex-shrink-0 text-sm text-zinc-500 dark:text-zinc-400">
+                            ×{item.quantity}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </SwipeableItem>
                 );
               })}
             </div>
