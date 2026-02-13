@@ -9,7 +9,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [token, _setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [csrfToken, setCsrfToken] = useState<string | null>(null)

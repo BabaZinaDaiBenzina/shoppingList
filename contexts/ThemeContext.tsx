@@ -12,10 +12,16 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  // Lazy initialization с проверкой на SSR
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'light'
+    const savedTheme = localStorage.getItem('theme') as Theme | null
+    return savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  })
 
   // Применить тему к DOM
   const applyTheme = (newTheme: Theme) => {
+    if (typeof window === 'undefined') return
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark')
     } else {
@@ -23,14 +29,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Инициализация темы при загрузке
+  // Применяем тему к DOM при изменении (только на клиенте)
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null
-    const initialTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-
-    setTheme(initialTheme)
-    applyTheme(initialTheme)
-  }, [])
+    applyTheme(theme)
+  }, [theme])
 
   const toggleTheme = () => {
     setTheme((prevTheme) => {

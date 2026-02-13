@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { indexedDB } from '@/lib/services/indexedDB'
 import { syncService } from '@/lib/services/syncService'
-import type { ShoppingListUI, ItemUI, User } from '@/types'
+import type { ShoppingListUI } from '@/types'
 
 export function useOfflineData() {
-  const [isOnline, setIsOnline] = useState(true)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [isInitialized, setIsInitialized] = useState(false)
   const [pendingSync, setPendingSync] = useState(0)
 
@@ -46,9 +46,6 @@ export function useOfflineData() {
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-
-    // Устанавливаем начальный статус
-    setIsOnline(navigator.onLine)
 
     return () => {
       window.removeEventListener('online', handleOnline)

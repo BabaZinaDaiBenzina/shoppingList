@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Wifi, WifiOff, AlertTriangle } from 'lucide-react'
+import { X, Wifi, WifiOff } from 'lucide-react'
 import { haptics } from '@/lib/utils/haptic'
 
 /**
@@ -11,13 +11,11 @@ import { haptics } from '@/lib/utils/haptic'
  * с анимацией при смене режима.
  */
 export function OfflineIndicator() {
-  const [isOnline, setIsOnline] = useState(true)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [isVisible, setIsVisible] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
 
   useEffect(() => {
-    // Устанавливаем начальный статус
-    setIsOnline(navigator.onLine)
 
     // Обработчик онлайн
     const handleOnline = () => {
