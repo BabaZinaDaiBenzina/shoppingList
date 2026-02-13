@@ -6,6 +6,9 @@ export default function OfflinePage() {
   const [isOnline, setIsOnline] = useState(false)
 
   useEffect(() => {
+    // Проверка на SSR
+    if (typeof window === 'undefined') return
+
     const checkConnection = () => {
       setIsOnline(navigator.onLine)
     }
@@ -16,8 +19,10 @@ export default function OfflinePage() {
     checkConnection()
 
     return () => {
-      window.removeEventListener('online', checkConnection)
-      window.removeEventListener('offline', checkConnection)
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', checkConnection)
+        window.removeEventListener('offline', checkConnection)
+      }
     }
   }, [])
 
