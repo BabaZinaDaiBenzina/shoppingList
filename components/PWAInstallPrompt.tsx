@@ -5,6 +5,12 @@ import { Button } from '@/components/ui/button'
 import { X, Download, Smartphone } from 'lucide-react'
 import { haptics } from '@/lib/utils/haptic'
 
+declare global {
+  interface Navigator {
+    readonly standalone?: boolean
+  }
+}
+
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
@@ -28,7 +34,7 @@ export function PWAInstallPrompt() {
     const checkStandalone = () => {
       const isStandaloneMode =
         window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
+        window.navigator.standalone === true ||
         document.referrer.includes('android-app://')
 
       setIsStandalone(isStandaloneMode)
@@ -52,7 +58,7 @@ export function PWAInstallPrompt() {
           // Проверяем снова на момент показа
           const stillNotStandalone =
             !window.matchMedia('(display-mode: standalone)').matches &&
-            (window.navigator as any).standalone !== true
+            window.navigator.standalone !== true
 
           if (stillNotStandalone && deferredPrompt) {
             setShowPrompt(true)

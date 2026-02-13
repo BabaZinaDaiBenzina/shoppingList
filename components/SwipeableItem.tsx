@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { ReactNode } from 'react'
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion'
 import { haptics } from '@/lib/utils/haptic'
@@ -23,9 +22,6 @@ export function SwipeableItem({
   isPurchased,
   disabled = false,
 }: SwipeableItemProps) {
-  useEffect(() => {
-    console.log('[SwipeableItem] Mounted', { disabled, isPurchased })
-  }, [disabled, isPurchased])
   const x = useMotionValue(0)
   const opacity = useTransform(x, [-150, 0, 150], [0, 1, 0])
   const purchaseOpacity = useTransform(x, [-SWIPE_THRESHOLD, 0, SWIPE_THRESHOLD], [0, 0, 1])
@@ -38,11 +34,9 @@ export function SwipeableItem({
     if (!info || !info.offset) return
 
     const offset = info.offset.x
-    console.log('[SwipeableItem] handleDragEnd', { offset, disabled, threshold: SWIPE_CONFIRM_THRESHOLD })
 
     // Свайп вправо → toggle purchased
     if (offset > SWIPE_CONFIRM_THRESHOLD) {
-      console.log('[SwipeableItem] Swipe right → toggle')
       haptics.toggle()
       onToggle()
       return
@@ -50,7 +44,6 @@ export function SwipeableItem({
 
     // Свайп влево → delete
     if (offset < -SWIPE_CONFIRM_THRESHOLD) {
-      console.log('[SwipeableItem] Swipe left → delete')
       haptics.delete()
       onDelete()
       return
@@ -61,7 +54,6 @@ export function SwipeableItem({
     // Защита от undefined
     if (!info || !info.offset) return
 
-    console.log('[SwipeableItem] handleDrag', { offset: info.offset.x })
     // Haptic feedback при достижении порога
     if (Math.abs(info.offset.x) > SWIPE_THRESHOLD && Math.abs(info.offset.x) < SWIPE_THRESHOLD + 20) {
       haptics.selection()

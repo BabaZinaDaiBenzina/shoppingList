@@ -31,7 +31,7 @@ export async function apiFetch(url: string, options: RequestOptions = {}): Promi
   }
 
   // Убираем Authorization header если он есть (теперь используем cookie)
-  const { Authorization, ...headersWithoutAuth } = headers
+  const { Authorization: _authorization, ...headersWithoutAuth } = headers
 
   // Выполняем запрос - cookie автоматически отправится браузером
   return fetch(url, {
@@ -43,7 +43,7 @@ export async function apiFetch(url: string, options: RequestOptions = {}): Promi
 /**
  * Обёртка для apiFetch с парсингом JSON
  */
-export async function apiFetchJson<T = any>(url: string, options: RequestOptions = {}): Promise<T> {
+export async function apiFetchJson<T = unknown>(url: string, options: RequestOptions = {}): Promise<T> {
   const response = await apiFetch(url, options)
 
   if (!response.ok) {
@@ -60,7 +60,7 @@ export async function apiFetchJson<T = any>(url: string, options: RequestOptions
  */
 export function withCredentials(options: RequestOptions): RequestOptions {
   const { headers, ...rest } = options
-  const { Authorization, ...headersWithoutAuth } = headers || {}
+  const { Authorization: _authorization, ...headersWithoutAuth } = headers || {}
 
   return { ...rest, headers: headersWithoutAuth as Record<string, string> }
 }

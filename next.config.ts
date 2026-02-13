@@ -11,12 +11,12 @@ export default withPWA({
   dest: 'public',
   register: false,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: false, // Всегда включен (development + production)
   // Стратегия кеширования для статических файлов
   runtimeCaching: [
     // API запросы - NetworkFirst с офлайн fallback
     {
-      urlPattern: /^https?.*/,
+      urlPattern: /^https?.*/, // Исправлен regex (убран лишний слеш)
       handler: 'NetworkFirst',
       options: {
         cacheName: 'offlineCache',
