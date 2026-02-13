@@ -17,7 +17,7 @@ interface QueueOperation {
   id: string
   type: 'CREATE' | 'UPDATE' | 'DELETE'
   endpoint: string
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   data?: unknown
   timestamp: number
   retryCount: number

@@ -88,7 +88,7 @@ export function useOfflineData() {
   const enqueueOperation = useCallback(async (
     type: 'CREATE' | 'UPDATE' | 'DELETE',
     endpoint: string,
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     data?: unknown
   ) => {
     try {

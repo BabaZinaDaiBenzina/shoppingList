@@ -16,12 +16,14 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { FAB } from "@/components/FAB";
 import { StickyFooter } from "@/components/StickyFooter";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { SwipeHint } from "@/components/SwipeHint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { haptics } from "@/lib/utils/haptic";
 import { useOfflineData } from "@/hooks/useOfflineData";
+import { indexedDB } from "@/lib/services/indexedDB";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Product, ShoppingListUI, Category } from "@/types";
 
@@ -94,6 +96,9 @@ export default function ListsPage() {
     listId: string;
     itemId: string;
   } | null>(null);
+
+  // Swipe hint - показываем один раз
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
 
   // Refs for keyboard shortcuts
   const newListNameInputRef = useRef<HTMLInputElement>(null);
@@ -204,6 +209,14 @@ export default function ListsPage() {
     };
   }, [isAuthenticated]);
 
+  // Swipe hint - показываем один раз
+  useEffect(() => {
+    const hasSeenSwipeHint = localStorage.getItem('swipeHintSeen')
+    if (!hasSeenSwipeHint) {
+      setShowSwipeHint(true)
+    }
+  }, [])
+
   // Scroll to top button
   useEffect(() => {
     const handleScroll = () => {
@@ -266,6 +279,35 @@ export default function ListsPage() {
     }
   }, [error]);
 
+  // Слушаем события синхронизации для обновления UI
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleSync = async () => {
+      // Перезагружаем списки из IndexedDB после синхронизации
+      if (isInitialized) {
+        try {
+          const offlineLists = await getOfflineLists();
+          setShoppingLists(offlineLists as ShoppingListUI[]);
+          console.log('🔄 UI обновлён после синхронизации');
+        } catch (err) {
+          console.error('Ошибка обновления UI после синхронизации:', err);
+        }
+      }
+    };
+
+    // Подписываемся на custom event
+    const eventHandler = () => {
+      console.log('📨 Получено событие синхронизации');
+      handleSync();
+    };
+
+    window.addEventListener('shopping-lists-synced', eventHandler);
+
+    return () => {
+      window.removeEventListener('shopping-lists-synced', eventHandler);
+    };
+  }, [isAuthenticated, isInitialized, getOfflineLists]);
   // API calls
   const fetchShoppingLists = async (signal?: AbortSignal) => {
     try {
@@ -312,6 +354,29 @@ export default function ListsPage() {
     async (listId: string) => {
       if (!isAuthenticated) return;
 
+      if (!isOnline) {
+        // Офлайн режим: пробуем загрузить из IndexedDB
+        if (isInitialized) {
+          try {
+            const offlineList = await indexedDB.getShoppingList(listId);
+            if (offlineList) {
+              setShoppingLists((lists) =>
+                lists.map((list) =>
+                  list.id === listId ? offlineList : list,
+                ),
+              );
+              setError("Офлайн режим. Показаны локально сохраненные данные.");
+            } else {
+              setError("Список не найден в локальном хранилище");
+            }
+          } catch (err) {
+            console.error("Error loading from IndexedDB:", err);
+          }
+        }
+        return;
+      }
+
+      // Онлайн режим
       try {
         const response = await fetch(`/api/shopping-lists/${listId}`);
         const data = await response.json();
@@ -328,12 +393,31 @@ export default function ListsPage() {
         await saveOfflineList(data.shoppingList);
       } catch (err) {
         console.error("Error fetching list items:", err);
-        setError(
-          err instanceof Error ? err.message : "Ошибка при загрузке товаров",
-        );
+        // При ошибке сети пробуем загрузить из IndexedDB
+        if (isInitialized) {
+          try {
+            const offlineList = await indexedDB.getShoppingList(listId);
+            if (offlineList) {
+              setShoppingLists((lists) =>
+                lists.map((list) =>
+                  list.id === listId ? offlineList : list,
+                ),
+              );
+              setError("Ошибка сети. Показаны локально сохраненные данные.");
+            }
+          } catch (dbErr) {
+            setError(
+              err instanceof Error ? err.message : "Ошибка при загрузке товаров",
+            );
+          }
+        } else {
+          setError(
+            err instanceof Error ? err.message : "Ошибка при загрузке товаров",
+          );
+        }
       }
     },
-    [saveOfflineList, isAuthenticated],
+    [saveOfflineList, isAuthenticated, isOnline, isInitialized],
   );
 
   // Fetch list items when expanded (lazy loading)
@@ -787,6 +871,24 @@ export default function ListsPage() {
     confirmDeleteItem(listId, itemId);
   };
 
+  const copyItem = async (listId: string, itemId: string) => {
+    // Находим список и товар
+    const list = shoppingLists.find((l) => l.id === listId);
+    const item = list?.items?.find((i) => i.id === itemId);
+
+    if (!item) return;
+
+    // Копируем товар с теми же параметрами
+    await addItem(
+      listId,
+      item.name,
+      item.quantity,
+      item.unit || undefined,
+      item.productId || undefined,
+      item.product?.categoryId || undefined,
+    );
+  };
+
   const updateItem = async (
     listId: string,
     itemId: string,
@@ -797,6 +899,47 @@ export default function ListsPage() {
     if (isUpdatingItem[itemKey]) return;
 
     setIsUpdatingItem((prev) => ({ ...prev, [itemKey]: true }));
+
+    // Находим товар и обновляем его локально
+    const list = shoppingLists.find((l) => l.id === listId);
+    const item = list?.items?.find((i) => i.id === itemId);
+
+    if (!item) return;
+
+    const updatedItem = { ...item, ...data };
+
+    // Обновляем UI сразу для отзывчивости
+    setShoppingLists((lists) =>
+      lists.map((list) =>
+        list.id === listId
+          ? {
+              ...list,
+              items: (list.items || []).map((item) =>
+                item.id === itemId ? updatedItem : item,
+              ),
+            } as ShoppingListUI
+          : list,
+      ) as ShoppingListUI[],
+    );
+
+    if (!isOnline) {
+      // Офлайн режим: сохраняем локально и добавляем в очередь
+      const updatedList = shoppingLists.find((l) => l.id === listId);
+      if (updatedList) {
+        const listWithUpdatedItem = {
+          ...updatedList,
+          items: (updatedList.items || []).map((i) =>
+            i.id === itemId ? updatedItem : i,
+          ),
+        };
+        await saveOfflineList(listWithUpdatedItem);
+      }
+
+      await enqueueOperation("UPDATE", `/api/items/${itemId}`, "PUT", data);
+      setError("Товар обновлен офлайн. Синхронизация при подключении к сети.");
+      setIsUpdatingItem((prev) => ({ ...prev, [itemKey]: false }));
+      return;
+    }
 
     // Онлайн режим
     try {
@@ -850,6 +993,36 @@ export default function ListsPage() {
 
     setIsDeselectAll((prev) => ({ ...prev, [listId]: true }));
 
+    // Находим список и обновляем все товары локально
+    const list = shoppingLists.find((l) => l.id === listId);
+    if (!list) return;
+
+    const updatedItems = (list.items || []).map((item) => ({
+      ...item,
+      purchased: false,
+    }));
+
+    // Обновляем UI сразу для отзывчивости
+    setShoppingLists((lists) =>
+      lists.map((list) =>
+        list.id === listId ? { ...list, items: updatedItems } : list,
+      ),
+    );
+
+    if (!isOnline) {
+      // Офлайн режим: сохраняем локально и добавляем в очередь
+      await saveOfflineList({ ...list, items: updatedItems });
+      await enqueueOperation(
+        "UPDATE",
+        `/api/shopping-lists/${listId}/deselect-all`,
+        "PATCH",
+      );
+      setError("Снято выделение офлайн. Синхронизация при подключении к сети.");
+      setIsDeselectAll((prev) => ({ ...prev, [listId]: false }));
+      return;
+    }
+
+    // Онлайн режим
     try {
       // Cookie автоматически отправляется браузером (httpOnly)
       const response = await fetch(
@@ -868,6 +1041,9 @@ export default function ListsPage() {
           list.id === listId ? { ...list, items: data.items } : list,
         ),
       );
+
+      // Сохраняем в IndexedDB
+      await saveOfflineList({ ...list, items: data.items });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Ошибка при снятии выделения",
@@ -1013,6 +1189,16 @@ export default function ListsPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 py-4 md:py-8 px-3 md:px-4 relative">
       {/* Offline Indicator */}
       <OfflineIndicator />
+
+      {/* Swipe Hint */}
+      {showSwipeHint && (
+        <SwipeHint
+          onDismiss={() => {
+            localStorage.setItem('swipeHintSeen', 'true')
+            setShowSwipeHint(false)
+          }}
+        />
+      )}
 
       {/* Индикатор обновления */}
       {isRefreshing && (
@@ -1198,6 +1384,7 @@ export default function ListsPage() {
                     }
                     onAddItem={addItem}
                     onUpdateItem={updateItem}
+                    onCopyItem={copyItem}
                     onToggleItem={toggleItem}
                     onDeleteItem={deleteItem}
                     onDeselectAll={deselectAll}
@@ -1253,6 +1440,7 @@ export default function ListsPage() {
                     }
                     onAddItem={addItem}
                     onUpdateItem={updateItem}
+                    onCopyItem={copyItem}
                     onToggleItem={toggleItem}
                     onDeleteItem={deleteItem}
                     onDeselectAll={deselectAll}
@@ -1308,6 +1496,7 @@ export default function ListsPage() {
                     }
                     onAddItem={addItem}
                     onUpdateItem={updateItem}
+                    onCopyItem={copyItem}
                     onToggleItem={toggleItem}
                     onDeleteItem={deleteItem}
                     onDeselectAll={deselectAll}
