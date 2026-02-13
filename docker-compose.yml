@@ -29,6 +29,10 @@ services:
         JWT_SECRET: ${JWT_SECRET}
     container_name: shoppinglist-app
     restart: unless-stopped
+    # Увеличены лимиты памяти для сборки (2GB + 4GB swap)
+    mem_limit: 2g
+    memswap_limit: 4g
+    memswap_reservation: 2g
     ports:
       - "${PORT:-3000}:3000"
     environment:
