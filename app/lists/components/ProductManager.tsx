@@ -428,7 +428,7 @@ export function ProductManager({ isOpen, onClose }: ProductManagerProps) {
                   {/* Продукты категории */}
                   {category.products && category.products.length > 0 && (
                     <div className="p-4 space-y-2">
-                      {category.products.map((product) => (
+                      {category.products.map((product: Product) => (
                         <div
                           key={product.id}
                           className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-lg"
