@@ -5,7 +5,7 @@
  * Дополнительные типы для UI определены ниже
  */
 
-import { Prisma } from '../node_modules/@prisma/client/generated'
+import { Prisma } from '@prisma/client'
 
 // ========== Prisma Types (Generated) ==========
 // Реэкспорт всех Prisma типов для удобства импорта
@@ -20,7 +20,7 @@ export type {
   Template,
   TemplateItem,
   RefreshToken,
-} from '../node_modules/@prisma/client/generated'
+} from '@prisma/client'
 
 // ========== Utility Types для Prisma ==========
 
