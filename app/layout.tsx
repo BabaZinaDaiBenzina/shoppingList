@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { ServiceWorkerProvider } from "./components/ServiceWorkerProvider";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import { BrowserOnly } from "./components/BrowserOnly";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -133,8 +134,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <OfflineIndicator />
-        <ServiceWorkerProvider />
+        <BrowserOnly>
+          <OfflineIndicator />
+          <ServiceWorkerProvider />
+        </BrowserOnly>
         <Providers>
           {children}
         </Providers>
