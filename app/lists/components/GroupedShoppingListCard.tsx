@@ -107,7 +107,7 @@ export function GroupedShoppingListCard({
 
   // Сортируем товары: сначала не купленные, потом купленные
   useMemo(() => {
-    Object.values(groupedItems).forEach((category: { id: string; name: string; icon: string; items: ItemWithProduct[] }) => {
+    (Object.values(groupedItems) as Array<{ id: string; name: string; icon: string; items: ItemWithProduct[] }>).forEach((category) => {
       category.items.sort((a, b) => {
         if (a.purchased === b.purchased) return 0
         return a.purchased ? 1 : -1
@@ -116,13 +116,13 @@ export function GroupedShoppingListCard({
   }, [groupedItems])
 
   // Сортируем категории: сначала с продуктами, потом пустые
-  const sortedCategories = Object.values(groupedItems).sort((a, b) => {
+  const sortedCategories = (Object.values(groupedItems) as Array<{ id: string; name: string; icon: string; items: ItemWithProduct[] }>).sort((a, b) => {
     return a.name.localeCompare(b.name, 'ru')
   })
 
   // Automatically expand categories with unpurchased items
   useEffect(() => {
-    const categoriesWithUnpurchased = Object.values(groupedItems)
+    const categoriesWithUnpurchased = (Object.values(groupedItems) as Array<{ id: string; name: string; icon: string; items: ItemWithProduct[] }>)
       .filter(category => category.items.some(item => !item.purchased))
       .map(category => category.id)
 
