@@ -14,9 +14,14 @@ export default withPWA({
   disable: false, // Всегда включен (development + production)
   // Стратегия кеширования для статических файлов
   runtimeCaching: [
-    // API запросы - NetworkFirst с офлайн fallback
+    // ✅ ИСПРАВЛЕНО: API запросы - только свои endpoints
     {
-      urlPattern: /^https?.*/, // Исправлен regex (убран лишний слеш)
+      // Development: localhost:3000
+      // Production: относительные пути /api/...
+      urlPattern: ({ url }: { url: URL }) => {
+        // Кешируем только API запросы к своему приложению
+        return url.pathname.startsWith('/api/')
+      },
       handler: 'NetworkFirst',
       options: {
         cacheName: 'offlineCache',

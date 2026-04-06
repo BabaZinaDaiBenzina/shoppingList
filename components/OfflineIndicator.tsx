@@ -9,13 +9,25 @@ import { haptics } from '@/lib/utils/haptic'
  *
  * Заметный индикатор режима работы (онлайн/офлайн)
  * с анимацией при смене режима.
+ * Prevents hydration mismatch by deferring navigator.onLine check to client-side.
  */
 export function OfflineIndicator() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [isOnline, setIsOnline] = useState(true) // Default to true for SSR
   const [isVisible, setIsVisible] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Set mounted state on client
+    setMounted(true)
+
+    // Initialize with actual navigator state
+    setIsOnline(navigator.onLine)
+
+    // Show indicator if offline on mount
+    if (!navigator.onLine) {
+      setIsVisible(true)
+    }
 
     // Обработчик онлайн
     const handleOnline = () => {
@@ -45,11 +57,6 @@ export function OfflineIndicator() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Показываем индикатор при загрузке если офлайн
-    if (!navigator.onLine) {
-      setIsVisible(true)
-    }
-
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
@@ -63,6 +70,11 @@ export function OfflineIndicator() {
       return () => clearTimeout(timer)
     }
   }, [isAnimating])
+
+  // Don't render anything until mounted (prevents hydration mismatch)
+  if (!mounted) {
+    return null
+  }
 
   // Не показываем если онлайн и индикатор скрыт
   if (isOnline && !isVisible) {

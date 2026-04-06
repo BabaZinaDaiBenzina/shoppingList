@@ -4,14 +4,20 @@ import { ReactNode } from 'react'
 import { ErrorBoundary } from './ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { StoreInitializer } from './StoreInitializer'
 
 /**
  * Компонент-обертка для всех провайдеров приложения с Error Boundary
  *
  * Error Boundary перехватывает ошибки из клиентских компонентов:
- * - AuthProvider
- * - ThemeProvider
+ * - AuthProvider (Context-based)
+ * - ThemeProvider (Context-based)
+ * - StoreInitializer (Zustand stores)
  * - Все дочерние компоненты
+ *
+ * Note: We're using hybrid approach:
+ * - Auth/Theme still use React Context (complex refresh logic)
+ * - ShoppingLists use Zustand (simpler state management)
  *
  * Ошибки из Server Components обрабатываются в app/error.tsx
  */
@@ -29,6 +35,7 @@ export function Providers({ children }: ProvidersProps) {
     >
       <ThemeProvider>
         <AuthProvider>
+          <StoreInitializer />
           {children}
         </AuthProvider>
       </ThemeProvider>

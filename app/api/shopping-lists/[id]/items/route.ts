@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser, unauthorizedResponse, canAccessList } from '@/lib/middleware'
+import { csrfMiddleware } from '@/lib/csrf'
+import { createItemSchema } from '@/lib/validations'
+import { logError } from '@/lib/logger'
 
 // POST /api/shopping-lists/[id]/items - Добавить товар в список
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 1. CSRF защита
+  const csrf = csrfMiddleware(request)
+  if (!csrf.valid) {
+    return NextResponse.json(
+      { error: csrf.error || 'Неверный CSRF токен' },
+      { status: 403 }
+    )
+  }
+
   try {
     const userId = await getAuthenticatedUser(request)
 
@@ -16,14 +28,21 @@ export async function POST(
 
     const { id: listId } = await params
     const body = await request.json()
-    const { name, quantity = 1, unit, productId, categoryId } = body
 
-    if (!name || name.trim().length === 0) {
+    // 2. Валидация с помощью Zod
+    const validationResult = createItemSchema.safeParse(body)
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Название товара обязательно' },
+        {
+          error: 'Ошибка валидации',
+          details: validationResult.error.flatten()
+        },
         { status: 400 }
       )
     }
+
+    const { name, quantity, unit, productId, categoryId } = validationResult.data
 
     // Проверяем, что пользователь имеет доступ к списку
     const hasAccess = await canAccessList(userId, listId)
@@ -80,33 +99,11 @@ export async function POST(
       }
     })
 
-    // Получаем обновленный список
-    const shoppingList = await prisma.shoppingList.findUnique({
-      where: { id: listId },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true
-              }
-            }
-          }
-        },
-        user: {
-          select: {
-            id: true,
-            username: true,
-            name: true
-          }
-        }
-      }
-    })
-
-    return NextResponse.json({ item, shoppingList }, { status: 201 })
+    // ✅ Возвращаем только созданный item, без лишнего запроса за списком
+    return NextResponse.json({ item }, { status: 201 })
 
   } catch (error) {
-    console.error('Create item error:', error)
+    logError('Create item error', error)
     return NextResponse.json(
       { error: 'Ошибка при добавлении товара' },
       { status: 500 }

@@ -2,9 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, generateAccessToken, generateRefreshToken, setAccessTokenCookie, setRefreshTokenCookie } from '@/lib/auth'
 import { rateLimitMiddleware, rateLimits } from '@/lib/rateLimit'
+import { csrfMiddleware } from '@/lib/csrf'
+import { registerSchema } from '@/lib/validations'
+import { logError } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
-  // Rate limiting - защита от спама регистраций
+  // 1. CSRF защита
+  const csrf = csrfMiddleware(request)
+  if (!csrf.valid) {
+    return NextResponse.json(
+      { error: csrf.error || 'Неверный CSRF токен' },
+      { status: 403 }
+    )
+  }
+
+  // 2. Rate limiting - защита от спама регистраций
   const rateLimit = rateLimitMiddleware(request, rateLimits.auth)
 
   if (!rateLimit.success) {
@@ -19,22 +31,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { email, username, password, name } = body
 
-    // Валидация
-    if (!email || !username || !password) {
+    // 3. Валидация с помощью Zod
+    const validationResult = registerSchema.safeParse(body)
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Email, username и password обязательны' },
+        {
+          error: 'Ошибка валидации',
+          details: validationResult.error.flatten()
+        },
         { status: 400 }
       )
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Пароль должен содержать минимум 6 символов' },
-        { status: 400 }
-      )
-    }
+    const { email, username, password, name } = validationResult.data
 
     // Проверка существующего пользователя
     const existingUser = await prisma.user.findFirst({
@@ -110,7 +121,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Registration error:', error)
+    logError('Registration error', error)
     return NextResponse.json(
       { error: 'Ошибка при регистрации' },
       { status: 500 }

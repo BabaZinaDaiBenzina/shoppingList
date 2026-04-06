@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { clearAuthCookies, verifyAccessToken, REFRESH_TOKEN_COOKIE } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/middleware'
+import { logError } from '@/lib/logger'
 
 /**
  * Logout со всех устройств
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Logout all error:', error)
+    logError('Logout all error', error)
     return NextResponse.json(
       { error: 'Ошибка при выходе со всех устройств' },
       { status: 500 }

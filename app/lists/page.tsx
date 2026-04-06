@@ -26,6 +26,7 @@ import { useOfflineData } from "@/hooks/useOfflineData";
 import { indexedDB } from "@/lib/services/indexedDB";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Product, ShoppingListUI, Category } from "@/types";
+import { logInfo } from "@/lib/logger";
 
 export default function ListsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -38,6 +39,9 @@ export default function ListsPage() {
     deleteOfflineList,
     enqueueOperation,
   } = useOfflineData();
+
+  // Mounted state to prevent hydration mismatch
+  const [mounted, setMounted] = useState(false);
 
   // State
   const [shoppingLists, setShoppingLists] = useState<ShoppingListUI[]>([]);
@@ -179,6 +183,9 @@ export default function ListsPage() {
 
   // Effects
   useEffect(() => {
+    // Set mounted state on client (prevents hydration mismatch)
+    setMounted(true);
+
     if (!authLoading && !isAuthenticated) {
       router.push("/login");
     }
@@ -226,6 +233,43 @@ export default function ListsPage() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // ✅ Слушатель обновления временных ID после синхронизации
+  useEffect(() => {
+    const handleIdUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        tempId: string
+        realId: string
+        type: string
+        data: unknown
+      }>
+
+      if (customEvent.detail.type === 'shopping-list') {
+        // Обновляем ID списков в state
+        setShoppingLists(prev => prev.map(list =>
+          list.id === customEvent.detail.tempId
+            ? { ...list, id: customEvent.detail.realId }
+            : list
+        ))
+
+        // Обновляем expandedListId если нужно
+        setExpandedListId(prev =>
+          prev === customEvent.detail.tempId ? customEvent.detail.realId : prev
+        )
+
+        logInfo('ID обновлен в UI', {
+          tempId: customEvent.detail.tempId,
+          realId: customEvent.detail.realId
+        })
+      }
+    }
+
+    window.addEventListener('sync-id-update', handleIdUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener('sync-id-update', handleIdUpdate as EventListener)
+    }
+  }, [])
 
   // Pull-to-refresh
   useEffect(() => {
@@ -467,9 +511,10 @@ export default function ListsPage() {
       setShoppingLists([tempList, ...shoppingLists]);
       await saveOfflineList(tempList);
 
-      // Добавляем в очередь синхронизации
+      // Добавляем в очередь синхронизации с tempId
       await enqueueOperation("CREATE", "/api/shopping-lists", "POST", {
         name: newListName,
+        tempId, // ✅ Передаем временный ID для обновления после синхронизации
       });
 
       setNewListName("");
@@ -1172,7 +1217,7 @@ export default function ListsPage() {
   ]);
 
   // Loading state
-  if (authLoading || isLoading) {
+  if (!mounted || authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 px-4">
         <div className="text-center">

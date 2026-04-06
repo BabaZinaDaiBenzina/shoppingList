@@ -205,7 +205,7 @@ class SyncService {
 
         return results
       } catch (error) {
-        logError(error, { message: 'Критическая ошибка синхронизации' })
+        logError('Критическая ошибка синхронизации', error)
         throw new SyncError('Ошибка синхронизации')
       }
     })
@@ -302,8 +302,7 @@ class SyncService {
         const isLastAttempt = attempt === maxRetries
 
         if (isLastAttempt) {
-          logError(error, {
-            message: 'Операция отклонена после всех попыток',
+          logError('Операция отклонена после всех попыток', error, {
             operationId: operation.id,
             endpoint: operation.endpoint,
             attempts: attempt + 1,
@@ -416,7 +415,32 @@ class SyncService {
     }
     // Если это создание/обновление/удаление списка
     else if (operation.endpoint.match(/\/shopping-lists\/?$/) && !operation.endpoint.includes('/items')) {
-      if (operation.type === 'CREATE' || operation.type === 'UPDATE') {
+      if (operation.type === 'CREATE') {
+        // ✅ КРИТИЧНО: Обновляем временный ID после создания на сервере
+        if (result.shoppingList || result.list) {
+          const newList = result.shoppingList || result.list
+          if (newList) {
+            const tempId = this.extractTempIdFromOperation(operation)
+            if (tempId && tempId !== newList.id) {
+              // Удаляем временный список
+              await indexedDB.deleteShoppingList(tempId)
+
+              // Сохраняем с реальным ID
+              await indexedDB.saveShoppingList(newList)
+
+              // ✅ Dispatch событие для обновления UI
+              window.dispatchEvent(new CustomEvent('sync-id-update', {
+                detail: { tempId, realId: newList.id, type: 'shopping-list', data: newList }
+              }))
+
+              logInfo('Временный ID обновлен', { tempId, realId: newList.id })
+            } else {
+              // Просто сохраняем (если ID не изменился)
+              await indexedDB.saveShoppingList(newList)
+            }
+          }
+        }
+      } else if (operation.type === 'UPDATE') {
         if (result.shoppingList) {
           await indexedDB.saveShoppingList(result.shoppingList)
         } else if (result.list) {
@@ -429,6 +453,23 @@ class SyncService {
         }
       }
     }
+  }
+
+  /**
+   * ✅ НОВЫЙ: Извлекает временный ID из операции CREATE
+   */
+  private extractTempIdFromOperation(operation: SyncOperation): string | null {
+    if (operation.type !== 'CREATE') return null
+
+    // Для операций создания списка endpoint: /api/shopping-lists
+    // Временный ID хранится в data как tempId
+    if (operation.endpoint === '/api/shopping-lists' && operation.data) {
+      const data = operation.data as { tempId?: string }
+      return data.tempId || null
+    }
+
+    // Для других CREATE операций можно извлечь из URL если нужно
+    return null
   }
 
   /**
@@ -486,7 +527,7 @@ class SyncService {
       try {
         callback()
       } catch (error) {
-        logError(error, { message: 'Ошибка в callback синхронизации' })
+        logError('Ошибка в callback синхронизации', error)
       }
     }
   }

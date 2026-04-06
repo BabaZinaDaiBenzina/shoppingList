@@ -195,12 +195,14 @@ export const logger = new Logger()
  * try {
  *   await someOperation()
  * } catch (error) {
- *   logError(error, { operation: 'someOperation', userId: '123' })
+ *   logError('Operation failed', error)
+ *   logError('Operation failed', error, { operation: 'someOperation', userId: '123' })
  * }
  * ```
  */
-export function logError(error: unknown, context?: Record<string, unknown>) {
-  logger.logAppError(error, context)
+export function logError(message: string, error?: unknown, context?: Record<string, unknown>) {
+  const errorContext = error ? { ...context, error } : context
+  logger.logAppError(error || new Error(message), { message, ...errorContext })
 }
 
 /**

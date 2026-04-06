@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
+import { csrfMiddleware } from '@/lib/csrf'
+import { logError } from '@/lib/logger'
 
 // GET /api/shopping-lists/[id] - Получить конкретный список с товарами
 export async function GET(
@@ -16,26 +18,15 @@ export async function GET(
 
     const { id } = await params
 
-    // Проверяем доступ (владелец или shared)
-    const hasAccess = await prisma.shoppingList.findFirst({
+    // ✅ Один запрос с проверкой доступа + получение данных
+    const shoppingList = await prisma.shoppingList.findFirst({
       where: {
         id,
         OR: [
           { userId }, // Владелец
           { shares: { some: { userId } } } // Shared
         ]
-      }
-    })
-
-    if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Список не найден' },
-        { status: 404 }
-      )
-    }
-
-    const shoppingList = await prisma.shoppingList.findUnique({
-      where: { id },
+      },
       include: {
         items: {
           include: {
@@ -57,17 +48,32 @@ export async function GET(
       }
     })
 
+    if (!shoppingList) {
+      return NextResponse.json(
+        { error: 'Список не найден' },
+        { status: 404 }
+      )
+    }
+
     // Добавляем флаг isOwner и isShared
     const listWithFlags = {
       ...shoppingList,
-      isOwner: shoppingList?.userId === userId,
-      isShared: shoppingList?.userId !== userId
+      isOwner: shoppingList.userId === userId,
+      isShared: shoppingList.userId !== userId
     }
 
-    return NextResponse.json({ shoppingList: listWithFlags })
+    return NextResponse.json(
+      { shoppingList: listWithFlags },
+      {
+        headers: {
+          // ✅ Cache-Control: 30 сек на сервере, 2 мин stale
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120'
+        }
+      }
+    )
 
   } catch (error) {
-    console.error('Get shopping list error:', error)
+    logError('Get shopping list error', error)
     return NextResponse.json(
       { error: 'Ошибка при получении списка' },
       { status: 500 }
@@ -80,6 +86,15 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 1. CSRF защита
+  const csrf = csrfMiddleware(request)
+  if (!csrf.valid) {
+    return NextResponse.json(
+      { error: csrf.error || 'Неверный CSRF токен' },
+      { status: 403 }
+    )
+  }
+
   try {
     const userId = await getAuthenticatedUser(request)
 
@@ -123,7 +138,7 @@ export async function PUT(
     return NextResponse.json({ shoppingList })
 
   } catch (error) {
-    console.error('Update shopping list error:', error)
+    logError('Update shopping list error', error)
     return NextResponse.json(
       { error: 'Ошибка при обновлении списка' },
       { status: 500 }
@@ -136,6 +151,15 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 1. CSRF защита
+  const csrf = csrfMiddleware(request)
+  if (!csrf.valid) {
+    return NextResponse.json(
+      { error: csrf.error || 'Неверный CSRF токен' },
+      { status: 403 }
+    )
+  }
+
   try {
     const userId = await getAuthenticatedUser(request)
 
@@ -165,7 +189,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'Список удалён' })
 
   } catch (error) {
-    console.error('Delete shopping list error:', error)
+    logError('Delete shopping list error', error)
     return NextResponse.json(
       { error: 'Ошибка при удалении списка' },
       { status: 500 }

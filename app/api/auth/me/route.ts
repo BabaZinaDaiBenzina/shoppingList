@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
+import { logError } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ user })
 
   } catch (error) {
-    console.error('Get user error:', error)
+    logError('Get user error', error)
     return NextResponse.json(
       { error: 'Ошибка при получении данных пользователя' },
       { status: 500 }

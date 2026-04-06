@@ -150,7 +150,7 @@ export function getAccessTokenCookieOptions(): {
     name: ACCESS_TOKEN_COOKIE,
     options: {
       httpOnly: true, // Токен недоступен из JavaScript (защита от XSS)
-      secure: false, // Временно отключено для отладки (включить true после настройки HTTPS)
+      secure: process.env.NODE_ENV === 'production', // Включено в production для HTTPS
       sameSite: 'strict', // Защита от CSRF
       path: '/', // Доступен на всех страницах
       maxAge: 15 * 60, // 15 минут в секундах
@@ -172,10 +172,10 @@ export function getRefreshTokenCookieOptions(): {
     name: REFRESH_TOKEN_COOKIE,
     options: {
       httpOnly: true, // Токен недоступен из JavaScript (защита от XSS)
-      secure: false, // Временно отключено для отладки (включить true после настройки HTTPS)
+      secure: process.env.NODE_ENV === 'production', // Включено в production для HTTPS
       sameSite: 'strict', // Защита от CSRF
       path: '/', // Доступен на всех страницах
-      maxAge: TOKEN_EXPIRY.REFRESH, // 30 дней
+      maxAge: TOKEN_EXPIRY.REFRESH, // 90 дней
     }
   }
 }

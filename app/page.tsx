@@ -2,10 +2,18 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
+
 export default function Home() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
-  if (isLoading) {
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Don't render until mounted (prevents hydration mismatch)
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
         <div className="text-center">
