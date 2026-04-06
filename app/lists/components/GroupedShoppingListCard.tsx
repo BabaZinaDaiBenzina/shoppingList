@@ -177,7 +177,7 @@ export function GroupedShoppingListCard({
     <div className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden ${list.isShared ? 'ring-2 ring-purple-500' : ''}`}>
       {/* Заголовок списка */}
       <div
-        className="p-4 md:p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors active:bg-zinc-100 dark:active:bg-zinc-700"
+        className="p-4 md:p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors active:bg-zinc-100 dark:active:bg-zinc-700"
         onClick={() => {
           haptics.tap()
           onToggle(list.id)
@@ -337,7 +337,7 @@ export function GroupedShoppingListCard({
 
       {/* Товары (раскрытый список) */}
       {isExpanded && (
-        <div className="border-t border-zinc-200 dark:border-zinc-700 p-6">
+        <div className="border-t border-zinc-200 dark:border-zinc-700 p-3">
           {/* Форма добавления товара */}
           {showAddItemForm && (
             <div className="space-y-3 mb-4">
@@ -430,7 +430,7 @@ export function GroupedShoppingListCard({
                 const purchasedInCategory = category.items.filter(i => i.purchased).length
 
                 return (
-                  <div key={category.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+                  <div key={category.id} className="rounded-lg overflow-hidden">
                     {/* Заголовок категории */}
                     <button
                       onClick={() => toggleCategory(category.id)}
@@ -455,7 +455,7 @@ export function GroupedShoppingListCard({
 
                     {/* Товары категории */}
                     {!isCollapsed && (
-                      <div className="p-2 space-y-1">
+                      <div className="p-1 space-y-1">
                         {category.items.map((item) => {
                           const itemKey = `${list.id}-${item.id}`
                           const isToggling = isTogglingItem[itemKey]
@@ -478,7 +478,7 @@ export function GroupedShoppingListCard({
                               disabled={isToggling || isDeleting || isUpdating || isEditing}
                             >
                               <div
-                                className={`flex items-center gap-2 p-2 rounded-lg ${
+                                className={`flex items-center gap-2 p-1 rounded-lg ${
                                   item.purchased
                                     ? 'bg-green-50 dark:bg-green-900/20'
                                     : 'bg-white dark:bg-zinc-800'
@@ -486,7 +486,7 @@ export function GroupedShoppingListCard({
                               >
                                 {/* Чекбокс */}
                                 <div
-                                  className={`flex-shrink-0 w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg border-2 flex items-center justify-center transition-colors ${
+                                  className={`flex-shrink-0 w-8 h-8 min-w-[34px] min-h-[34px] rounded-lg border-1 flex items-center justify-center transition-colors ${
                                     item.purchased
                                       ? 'bg-green-500 border-green-500 text-white'
                                       : 'border-zinc-300 dark:border-zinc-600'
