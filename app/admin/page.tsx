@@ -202,7 +202,7 @@ export default function AdminPage() {
                 <div className="p-6 bg-gray-50">
                   <h4 className="text-lg font-semibold text-gray-700 mb-4">Списки покупок</h4>
                   <div className="grid gap-3">
-                    {user.shoppingLists.map((list) => (
+                    {user.shoppingLists.map((list: UserWithLists['shoppingLists'][number]) => (
                       <div
                         key={list.id}
                         className="bg-white p-4 rounded-lg border border-gray-200 flex items-center justify-between"
