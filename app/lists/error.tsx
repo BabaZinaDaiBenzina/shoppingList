@@ -22,7 +22,7 @@ export default function ListsError({
 }) {
   useEffect(() => {
     // Логируем ошибку при монтировании
-    logError(error, {
+    logError('Lists page error', error, {
       digest: error.digest,
       location: 'lists-page',
     })

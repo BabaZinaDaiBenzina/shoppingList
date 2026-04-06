@@ -13,7 +13,15 @@ export async function GET(request: NextRequest) {
       orderBy: { sortOrder: 'asc' }
     })
 
-    return NextResponse.json({ categories })
+    return NextResponse.json(
+      { categories },
+      {
+        headers: {
+          // ✅ Cache-Control: 10 мин на сервере, 30 мин stale (категории меняются редко)
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1800'
+        }
+      }
+    )
 
   } catch (error) {
     console.error('Get categories error:', error)

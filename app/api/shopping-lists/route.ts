@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/middleware'
+import { csrfMiddleware } from '@/lib/csrf'
+import { createShoppingListSchema } from '@/lib/validations'
+import { logError } from '@/lib/logger'
 
 // GET /api/shopping-lists - Получить все списки пользователя (включая shared)
 // Optimized: загружает только метаданные списков без items
@@ -106,10 +109,18 @@ export async function GET(request: NextRequest) {
 
     const shoppingLists = [...ownListsWithFlag, ...sharedListsWithFlag]
 
-    return NextResponse.json({ shoppingLists })
+    return NextResponse.json(
+      { shoppingLists },
+      {
+        headers: {
+          // ✅ Cache-Control: 60 сек на сервере, 5 мин stale
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+        }
+      }
+    )
 
   } catch (error) {
-    console.error('Get shopping lists error:', error)
+    logError('Get shopping lists error', error)
     return NextResponse.json(
       { error: 'Ошибка при получении списков' },
       { status: 500 }
@@ -119,6 +130,15 @@ export async function GET(request: NextRequest) {
 
 // POST /api/shopping-lists - Создать новый список
 export async function POST(request: NextRequest) {
+  // 1. CSRF защита
+  const csrf = csrfMiddleware(request)
+  if (!csrf.valid) {
+    return NextResponse.json(
+      { error: csrf.error || 'Неверный CSRF токен' },
+      { status: 403 }
+    )
+  }
+
   try {
     const userId = await getAuthenticatedUser(request)
 
@@ -127,18 +147,25 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name } = body
 
-    if (!name || name.trim().length === 0) {
+    // 2. Валидация с помощью Zod
+    const validationResult = createShoppingListSchema.safeParse(body)
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Название списка обязательно' },
+        {
+          error: 'Ошибка валидации',
+          details: validationResult.error.flatten()
+        },
         { status: 400 }
       )
     }
 
+    const { name } = validationResult.data
+
     const shoppingList = await prisma.shoppingList.create({
       data: {
-        name: name.trim(),
+        name,
         userId,
       },
       select: {
@@ -157,7 +184,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ shoppingList }, { status: 201 })
 
   } catch (error) {
-    console.error('Create shopping list error:', error)
+    logError('Create shopping list error', error)
     return NextResponse.json(
       { error: 'Ошибка при создании списка' },
       { status: 500 }

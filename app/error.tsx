@@ -25,7 +25,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Логируем ошибку при монтировании
-    logError(error, {
+    logError('Global error', error, {
       digest: error.digest,
       location: 'global-error',
     })

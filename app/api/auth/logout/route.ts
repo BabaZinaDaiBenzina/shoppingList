@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clearAuthCookies, REFRESH_TOKEN_COOKIE } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logError } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Logout error:', error)
+    logError('Logout error', error)
 
     // Даже при ошибке очищаем cookies
     const response = NextResponse.json({

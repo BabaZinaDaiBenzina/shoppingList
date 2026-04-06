@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateAccessToken, generateRefreshToken, setAccessTokenCookie, setRefreshTokenCookie, REFRESH_TOKEN_COOKIE } from '@/lib/auth'
+import { logError } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('Refresh token error:', error)
+    logError('Refresh token error', error)
     return NextResponse.json(
       { error: 'Ошибка при обновлении токена' },
       { status: 500 }

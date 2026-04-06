@@ -1,377 +1,78 @@
-"use client";
+'use client'
 
-import { useState, useRef, useEffect } from "react";
-import { ShoppingListUI } from "@/types";
-import { SwipeableItem } from "@/components/SwipeableItem";
+import { memo } from 'react'
+import type { ShoppingListUI } from '@/types'
 
 interface ShoppingListCardProps {
-  list: ShoppingListUI;
-  isExpanded: boolean;
-  onToggle: (listId: string) => void;
-  onDelete: (listId: string) => void;
-  onShare?: (listId: string) => void;
-  onAddItem: (listId: string, itemName: string) => void;
-  onToggleItem: (listId: string, itemId: string) => void;
-  onDeleteItem: (listId: string, itemId: string) => void;
-  onDeselectAll: (listId: string) => void;
-  newItemName: string;
-  onItemNameChange: (listId: string, name: string) => void;
-  isDeleting?: boolean;
-  isAddingItem?: boolean;
-  isTogglingItem?: Record<string, boolean>;
-  isDeletingItem?: Record<string, boolean>;
-  isDeselectAll?: boolean;
+  list: ShoppingListUI
+  onOpenList: (listId: string) => void
+  onDeleteList: (listId: string) => void
+  isDeleting: boolean
 }
 
-export function ShoppingListCard({
+/**
+ * Memoized shopping list card component
+ * Only re-renders when list data, isDeleting state, or callbacks change
+ */
+export const ShoppingListCard = memo<ShoppingListCardProps>(({
   list,
-  isExpanded,
-  onToggle,
-  onDelete,
-  onShare,
-  onAddItem,
-  onToggleItem,
-  onDeleteItem,
-  onDeselectAll,
-  newItemName,
-  onItemNameChange,
-  isDeleting = false,
-  isAddingItem = false,
-  isTogglingItem = {},
-  isDeletingItem = {},
-  isDeselectAll = false,
-}: ShoppingListCardProps) {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const items = list.items || [];
-
-  // Используем purchasedCount из API если товары не загружены, иначе считаем из items
-  const totalItems =
-    items.length > 0 ? items.length : list._count?.items || 0;
-  const purchasedCount =
-    items.length > 0
-      ? items.filter((i) => i.purchased).length
-      : (list.purchasedCount ?? 0);
-
-  // Закрыть дропдаун при клике вне его
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Сортируем товары: сначала не купленные, потом купленные
-  const sortedItems = [...items].sort((a, b) => {
-    if (a.purchased === b.purchased) return 0;
-    return a.purchased ? 1 : -1;
-  });
-
-  const handleMenuAction = (action: () => void) => {
-    action();
-    setShowDropdown(false);
-  };
-
+  onOpenList,
+  onDeleteList,
+  isDeleting,
+}) => {
   return (
     <div
-      className={`bg-white dark:bg-zinc-800 rounded-2xl shadow-xl overflow-hidden ${list.isShared ? "ring-2 ring-purple-500" : ""}`}
+      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onOpenList(list.id)}
     >
-      {/* Заголовок списка */}
-      <div
-        className="p-4 md:p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors active:bg-zinc-100 dark:active:bg-zinc-700"
-        onClick={() => onToggle(list.id)}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-            <div
-              className={`w-12 h-12 md:w-12 md:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center text-white text-lg md:text-xl font-bold flex-shrink-0 ${
-                list.isShared
-                  ? "from-purple-500 to-pink-600"
-                  : "from-blue-500 to-purple-600"
-              }`}
-            >
-              {purchasedCount}/{totalItems}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg md:text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate">
-                  {list.name}
-                </h2>
-                {list.isShared && (
-                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full flex-shrink-0">
-                    Общий
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                {totalItems} товаров •{" "}
-                {new Date(list.updatedAt).toLocaleDateString("ru-RU")}
-                {list.isShared && list.user && (
-                  <> • {list.user.name || list.user.username}</>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-3">
-            {/* Кнопка меню (три точки) - только когда развернуто */}
-            {isExpanded && (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDropdown(!showDropdown);
-                  }}
-                  className="p-3 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700 rounded-lg transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                  aria-label="Меню"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="5" r="1.5" />
-                    <circle cx="12" cy="12" r="1.5" />
-                    <circle cx="12" cy="19" r="1.5" />
-                  </svg>
-                </button>
-
-                {/* Выпадающее меню */}
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 py-2 z-50">
-                    {list.isOwner && onShare && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMenuAction(() => onShare(list.id));
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm"
-                      >
-                        <svg
-                          className="w-5 h-5 text-purple-600 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                          />
-                        </svg>
-                        <span className="text-zinc-900 dark:text-zinc-50">
-                          Поделиться списком
-                        </span>
-                      </button>
-                    )}
-
-                    {purchasedCount > 0 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMenuAction(() => onDeselectAll(list.id));
-                        }}
-                        disabled={isDeselectAll}
-                        className="w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors flex items-center gap-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isDeselectAll ? (
-                          <div className="w-5 h-5 flex-shrink-0 animate-spin rounded-full border-2 border-orange-600 border-t-transparent"></div>
-                        ) : (
-                          <svg
-                            className="w-5 h-5 text-orange-600 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        )}
-                        <span className="text-zinc-900 dark:text-zinc-50">
-                          {isDeselectAll
-                            ? "Снятие..."
-                            : `Снять выделение (${purchasedCount})`}
-                        </span>
-                      </button>
-                    )}
-
-                    {list.isOwner && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMenuAction(() => onDelete(list.id));
-                        }}
-                        disabled={isDeleting}
-                        className="w-full px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3 text-sm text-red-600 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isDeleting ? (
-                          <div className="w-5 h-5 flex-shrink-0 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
-                        ) : (
-                          <svg
-                            className="w-5 h-5 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        )}
-                        <span>
-                          {isDeleting ? "Удаление..." : "Удалить список"}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-800 mb-1">{list.name}</h3>
+          <p className="text-sm text-gray-500">
+            {list.items?.length || 0} товаров
+            {list.purchasedCount !== undefined && list.purchasedCount > 0 && (
+              <>
+                {' '}• {list.purchasedCount} куплено
+              </>
             )}
-
-            <svg
-              className={`w-5 h-5 text-zinc-400 transition-transform ${
-                isExpanded ? "rotate-180" : ""
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Обновлено: {new Date(list.updatedAt).toLocaleDateString('ru-RU')}
+          </p>
         </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDeleteList(list.id)
+          }}
+          disabled={isDeleting}
+          className="text-red-500 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed px-3 py-1 text-sm"
+        >
+          {isDeleting ? 'Удаление...' : 'Удалить'}
+        </button>
       </div>
 
-      {/* Товары (раскрытый список) */}
-      {isExpanded && (
-        <div className="border-t border-zinc-200 dark:border-zinc-700 p-6">
-          {/* Форма добавления товара */}
-          <div className="flex gap-2 md:gap-3 mb-4">
-            <input
-              type="text"
-              value={newItemName}
-              onChange={(e) => onItemNameChange(list.id, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  onAddItem(list.id, newItemName);
-                }
-              }}
-              placeholder="Добавить товар..."
-              disabled={isAddingItem}
-              className="flex-1 min-w-0 px-4 py-3 text-base border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-white min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <button
-              onClick={() => onAddItem(list.id, newItemName)}
-              disabled={isAddingItem}
-              className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors active:scale-95 min-h-[48px] text-base whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isAddingItem ? (
-                <>
-                  <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  <span>Добавление...</span>
-                </>
-              ) : (
-                "Добавить"
-              )}
-            </button>
-          </div>
-
-          {/* Список товаров */}
-          {items.length === 0 ? (
-            <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-              Список пуст. Добавьте первый товар!
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {sortedItems.map((item) => {
-                const itemKey = `${list.id}-${item.id}`;
-                const isToggling = isTogglingItem[itemKey];
-                const isDeleting = isDeletingItem[itemKey];
-
-                return (
-                  <SwipeableItem
-                    key={item.id}
-                    onToggle={() => !isToggling && onToggleItem(list.id, item.id)}
-                    onDelete={() => onDeleteItem(list.id, item.id)}
-                    isPurchased={item.purchased}
-                    disabled={isToggling || isDeleting}
-                  >
-                    <div
-                      className={`flex items-center gap-3 p-3 md:p-4 rounded-lg ${
-                        item.purchased
-                          ? "bg-green-50 dark:bg-green-900/20"
-                          : "bg-zinc-50 dark:bg-zinc-700/50"
-                      }`}
-                    >
-                      <div
-                        className={`flex-shrink-0 w-7 h-7 md:w-6 md:h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
-                          item.purchased
-                            ? "bg-green-500 border-green-500 text-white"
-                            : "border-zinc-300 dark:border-zinc-600"
-                        }`}
-                      >
-                        {isToggling ? (
-                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                        ) : item.purchased ? (
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        ) : null}
-                      </div>
-                      <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <span
-                          className={`text-base md:text-sm truncate ${
-                            item.purchased
-                              ? "line-through text-zinc-500 dark:text-zinc-400"
-                              : "text-zinc-900 dark:text-zinc-50"
-                          }`}
-                        >
-                          {item.name}
-                        </span>
-                        {item.quantity > 1 && (
-                          <span className="flex-shrink-0 text-sm text-zinc-500 dark:text-zinc-400">
-                            ×{item.quantity}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </SwipeableItem>
-                );
-              })}
-            </div>
-          )}
+      {list.isShared && (
+        <div className="mt-2 flex items-center gap-1 text-xs text-blue-600">
+          <span className="px-2 py-1 bg-blue-50 rounded">Общий список</span>
         </div>
       )}
     </div>
-  );
-}
+  )
+}, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.list.id === nextProps.list.id &&
+    prevProps.list.name === nextProps.list.name &&
+    prevProps.list.updatedAt === nextProps.list.updatedAt &&
+    prevProps.list.items?.length === nextProps.list.items?.length &&
+    prevProps.list.purchasedCount === nextProps.list.purchasedCount &&
+    prevProps.list.isShared === nextProps.list.isShared &&
+    prevProps.isDeleting === nextProps.isDeleting &&
+    prevProps.onOpenList === nextProps.onOpenList &&
+    prevProps.onDeleteList === nextProps.onDeleteList
+  )
+})
+
+ShoppingListCard.displayName = 'ShoppingListCard'
