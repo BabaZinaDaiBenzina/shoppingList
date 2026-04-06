@@ -29,7 +29,7 @@ import { Product, ShoppingListUI, Category } from "@/types";
 import { logInfo } from "@/lib/logger";
 
 export default function ListsPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, fetchWithAuth } = useAuth();
   const router = useRouter();
   const {
     isOnline,
@@ -355,8 +355,8 @@ export default function ListsPage() {
   // API calls
   const fetchShoppingLists = async (signal?: AbortSignal) => {
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch("/api/shopping-lists", { signal });
+      // Используем fetchWithAuth для автоматического обновления токена
+      const response = await fetchWithAuth("/api/shopping-lists", { signal });
 
       const data = await response.json();
       if (!response.ok)
@@ -422,7 +422,7 @@ export default function ListsPage() {
 
       // Онлайн режим
       try {
-        const response = await fetch(`/api/shopping-lists/${listId}`);
+        const response = await fetchWithAuth(`/api/shopping-lists/${listId}`);
         const data = await response.json();
 
         if (!response.ok)
@@ -473,8 +473,8 @@ export default function ListsPage() {
 
   const fetchCategories = async (signal?: AbortSignal) => {
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch("/api/categories", { signal });
+      // Используем fetchWithAuth для автоматического обновления токена
+      const response = await fetchWithAuth("/api/categories", { signal });
 
       const data = await response.json();
       if (response.ok) {
@@ -525,8 +525,8 @@ export default function ListsPage() {
 
     // Онлайн режим: отправляем на сервер
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch("/api/shopping-lists", {
+      // Используем fetchWithAuth для автоматического добавления CSRF токена
+      const response = await fetchWithAuth("/api/shopping-lists", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -581,8 +581,8 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch(`/api/shopping-lists/${listId}`, {
+      // Используем fetchWithAuth для автоматического добавления CSRF токена
+      const response = await fetchWithAuth(`/api/shopping-lists/${listId}`, {
         method: "DELETE",
       });
 
@@ -688,8 +688,8 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch(`/api/shopping-lists/${listId}/items`, {
+      // Используем fetchWithAuth для автоматического добавления CSRF токена
+      const response = await fetchWithAuth(`/api/shopping-lists/${listId}/items`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -798,8 +798,8 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch(`/api/items/${itemId}/toggle`, {
+      // Используем fetchWithAuth для автоматического добавления CSRF токена
+      const response = await fetchWithAuth(`/api/items/${itemId}/toggle`, {
         method: "PATCH",
       });
 
@@ -883,8 +883,8 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch(`/api/items/${itemId}`, {
+      // Используем fetchWithAuth для автоматического добавления CSRF токена
+      const response = await fetchWithAuth(`/api/items/${itemId}`, {
         method: "DELETE",
       });
 
@@ -988,7 +988,8 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      const response = await fetch(`/api/items/${itemId}`, {
+      // Используем fetchWithAuth для автоматического добавления CSRF токена
+      const response = await fetchWithAuth(`/api/items/${itemId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1069,8 +1070,8 @@ export default function ListsPage() {
 
     // Онлайн режим
     try {
-      // Cookie автоматически отправляется браузером (httpOnly)
-      const response = await fetch(
+      // Используем fetchWithAuth для автоматического добавления CSRF токена
+      const response = await fetchWithAuth(
         `/api/shopping-lists/${listId}/deselect-all`,
         {
           method: "PATCH",
@@ -1100,7 +1101,8 @@ export default function ListsPage() {
 
   // Templates operations
   const applyTemplate = async (templateId: string, listName: string) => {
-    const response = await fetch(`/api/templates/${templateId}/apply`, {
+    // Используем fetchWithAuth для автоматического добавления CSRF токена
+    const response = await fetchWithAuth(`/api/templates/${templateId}/apply`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1122,7 +1124,8 @@ export default function ListsPage() {
     templateName: string,
     description: string,
   ) => {
-    const response = await fetch(
+    // Используем fetchWithAuth для автоматического добавления CSRF токена
+    const response = await fetchWithAuth(
       `/api/shopping-lists/${listId}/save-as-template`,
       {
         method: "POST",

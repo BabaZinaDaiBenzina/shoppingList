@@ -34,5 +34,5 @@ export interface AuthContextType {
   logoutAll?: () => Promise<void>
   refreshUser: () => Promise<void>
   refreshTokens?: () => Promise<boolean>
-  fetchWithAuth?: (url: string, options?: RequestInit) => Promise<Response>
+  fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>
 }
