@@ -6,12 +6,18 @@ import { syncService } from '@/lib/services/syncService'
 import type { ShoppingListUI } from '@/types'
 
 export function useOfflineData() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [isOnline, setIsOnline] = useState(true) // Default to true for SSR
   const [isInitialized, setIsInitialized] = useState(false)
   const [pendingSync, setPendingSync] = useState(0)
 
-  // Инициализация IndexedDB
+  // Инициализация онлайн статуса и IndexedDB
   useEffect(() => {
+    // Проверка на серверный рендеринг
+    if (typeof window === 'undefined') return
+
+    // Set actual online status on client
+    setIsOnline(navigator.onLine)
+
     const initDB = async () => {
       try {
         await indexedDB.init()
