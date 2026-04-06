@@ -30,6 +30,9 @@ export function PWAInstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(false)
 
   useEffect(() => {
+    // Проверка на серверный рендеринг
+    if (typeof window === 'undefined') return
+
     // Проверяем, установлен ли PWA
     const checkStandalone = () => {
       const isStandaloneMode =

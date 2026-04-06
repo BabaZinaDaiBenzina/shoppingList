@@ -18,6 +18,9 @@ export function OfflineIndicator() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Проверка на серверный рендеринг
+    if (typeof window === 'undefined') return
+
     // Set mounted state on client
     setMounted(true)
 
