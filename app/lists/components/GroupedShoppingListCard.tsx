@@ -107,7 +107,7 @@ export function GroupedShoppingListCard({
 
   // Сортируем товары: сначала не купленные, потом купленные
   useMemo(() => {
-    Object.values(groupedItems).forEach(category => {
+    Object.values(groupedItems).forEach((category: { id: string; name: string; icon: string; items: ItemWithProduct[] }) => {
       category.items.sort((a, b) => {
         if (a.purchased === b.purchased) return 0
         return a.purchased ? 1 : -1
