@@ -34,12 +34,15 @@ export const createItemSchema = z.object({
     .default(1),
   unit: z.string()
     .max(20, 'Максимальная длина единицы измерения 20 символов')
+    .nullable()
     .optional(),
   productId: z.string()
     .cuid('Неверный формат ID продукта')
+    .nullable()
     .optional(),
   categoryId: z.string()
     .cuid('Неверный формат ID категории')
+    .nullable()
     .optional(),
 })
 
@@ -58,6 +61,7 @@ export const updateItemSchema = z.object({
     .optional(),
   unit: z.string()
     .max(20, 'Максимальная длина единицы измерения 20 символов')
+    .nullable()
     .optional(),
   purchased: z.boolean().optional(),
 })
